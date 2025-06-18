@@ -1,0 +1,27 @@
+spring:
+  r2dbc:
+    url: r2dbc:h2:mem:///testdb?options=DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password: 
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+      data-locations: classpath:data.sql
+
+logging:
+  file:
+    name: ./logs/weather-service-local.log
+  level:
+    com.weather: DEBUG
+    org.springframework.r2dbc: DEBUG
+    io.r2dbc.h2: DEBUG
+
+# Local profile specific resilience configuration
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        sliding-window-size: 5
+        minimum-number-of-calls: 3
+        failure-rate-threshold: 60.0

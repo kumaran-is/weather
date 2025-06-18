@@ -1,0 +1,30 @@
+spring:
+  r2dbc:
+    url: ${DB_URL_DEV:r2dbc:mssql://localhost:1433/weatherdb}
+    username: ${DB_USERNAME_DEV:weather_user}
+    password: ${DB_PASSWORD_DEV:password}
+    pool:
+      initial-size: 5
+      max-size: 20
+      max-idle-time: 30m
+      validation-query: SELECT 1
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema-mssql.sql
+
+logging:
+  level:
+    com.weather: DEBUG
+    org.springframework.r2dbc: INFO
+    root: INFO
+
+# Dev profile specific resilience configuration
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        sliding-window-size: 20
+        minimum-number-of-calls: 10
+        failure-rate-threshold: 40.0
+        wait-duration-in-open-state: 30s
