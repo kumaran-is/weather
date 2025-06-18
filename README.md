@@ -8,208 +8,438 @@ A reactive REST service for managing weather data, built with Java 21, Spring Bo
 - [Features](#features)
 - [Technology Stack](#technology-stack)
 - [Prerequisites](#prerequisites)
-- [Project Setup](#project-setup)
-  - [Configuration](#configuration)
-  - [Building the Project](#building-the-project)
-  - [Running the Application](#running-the-application)
-- [API Endpoints](#api-endpoints)
-  - [Health Checks](#health-checks)
-  - [Swagger API Documentation](#swagger-api-documentation)
+- [Quick Start](#quick-start)
+- [Project Structure](#project-structure)
+- [Building the Project](#building-the-project)
+- [Running the Application](#running-the-application)
+- [Health Checks & Monitoring](#health-checks--monitoring)
+- [API Testing with Swagger UI](#api-testing-with-swagger-ui)
+- [API Endpoints Reference](#api-endpoints-reference)
 - [Development Workflow](#development-workflow)
+- [Configuration](#configuration)
+- [Docker Support](#docker-support)
 - [Logging](#logging)
 - [Error Handling](#error-handling)
-- [Resilience](#resilience)
-- [Dockerization](#dockerization)
+- [Resilience Patterns](#resilience-patterns)
 
 ## Overview
 
-This service provides RESTful endpoints to record, retrieve, update, and delete weather information for various cities. It uses a reactive stack for non-blocking I/O and is designed to be scalable and resilient.
+This service provides RESTful endpoints to record, retrieve, update, and delete weather information for various cities. It uses a reactive stack for non-blocking I/O and is designed to be scalable and resilient with comprehensive monitoring and health checks.
 
 ## Features
 
--   CRUD operations for weather data.
--   Reactive API endpoints.
--   H2 in-memory database for local development.
--   Support for other R2DBC-compatible databases for different environments (e.g., postgresql Server).
--   Centralized configuration management.
--   Comprehensive health checks (application, database, resilience components).
--   Global error handling with standardized error responses.
--   Resilience patterns (Circuit Breaker, Retry, Rate Limiter, Time Limiter) via Resilience4j.
--   OpenAPI (Swagger) documentation.
--   Docker support for containerization.
+- **Reactive CRUD operations** for weather data using Spring WebFlux
+- **H2 in-memory database** for local development with sample data
+- **SQL Server support** for dev/prod environments via R2DBC
+- **Java Records** for DTOs (no Lombok dependency for DTOs)
+- **Comprehensive health checks** (application, database, resilience components)
+- **Resilience patterns** (Circuit Breaker, Retry, Rate Limiter, Time Limiter)
+- **Global error handling** with standardized JSON error responses
+- **OpenAPI/Swagger documentation** with example request values
+- **Validation** using JSR-380 annotations
+- **Paginated responses** for large datasets
+- **Docker support** with multi-stage builds and security best practices
+- **Single port configuration** (8080) for all services
 
 ## Technology Stack
 
--   Java 21
--   Spring Boot 3.4.5
--   Spring Framework 6.2.6
-    -   Spring WebFlux (Reactive Web)
-    -   Spring Data R2DBC (Reactive Database Access)
-    -   Spring Security
-    -   Spring Boot Actuator
--   Project Reactor
--   Maven 3.8+
--   R2DBC (for H2, SQL Server, etc.)
--   H2 Database (for local profile)
--   Log4j2 (Logging)
--   Resilience4j (Resilience patterns)
--   Springdoc OpenAPI (Swagger API documentation)
--   Lombok (Boilerplate code reduction)
--   MapStruct (Bean mapping)
--   Docker
+- **Java 21** with Records and modern features
+- **Spring Boot 3.4.5** with Spring Framework 6.2.6
+- **Spring WebFlux** for reactive web programming
+- **Spring Data R2DBC** for reactive database access
+- **Spring Security** with permissive configuration for API access
+- **Spring Boot Actuator** for health checks and metrics
+- **Project Reactor** for reactive programming
+- **Maven 3.9.6** for build management
+- **R2DBC** drivers for H2 and SQL Server
+- **H2 Database** for local development
+- **Log4j2** for structured logging
+- **Resilience4j** for resilience patterns
+- **Springdoc OpenAPI** for API documentation
+- **MapStruct** for entity-DTO mapping
+- **Docker** with Eclipse Temurin Alpine images
 
 ## Prerequisites
 
--   JDK 21 or later
--   Maven 3.8.0 or later
--   Docker (optional, for containerization)
--   An IDE that supports Java and Maven (e.g., IntelliJ IDEA, VS Code with Java extensions)
+- **JDK 21** or later
+- **Maven 3.8.0** or later
+- **Docker** (optional, for containerization)
+- **IDE** with Java support (IntelliJ IDEA, VS Code, Eclipse)
 
-## Project Setup
+## Quick Start
 
-1.  **Clone the repository** (if applicable) or ensure all files are in the project directory.
-2.  **Import the project** into your IDE as a Maven project.
-3.  **Resolve Maven dependencies**: The IDE should do this automatically, or you can run `mvn clean install` from the command line.
+1. **Clone and build the project:**
+   ```bash
+   git clone <repository-url>
+   cd weather
+   ./mvnw clean package
+   ```
 
-### Configuration
+2. **Run the application:**
+   ```bash
+   ./mvnw spring-boot:run -Dspring-boot.run.profiles=local
+   ```
 
-The application uses YAML-based configuration files located in `src/main/resources/`:
+3. **Access the application:**
+   - **Swagger UI**: http://localhost:8080/swagger-ui.html
+   - **Health Check**: http://localhost:8080/management/health
+   - **API Base**: http://localhost:8080/api/v1/weather
 
--   `application.yml`: Base configuration, common to all profiles.
--   `application-local.yml`: Configuration for the `local` profile (default for quick local runs). Uses H2 in-memory database and file-based logging.
--   `application-dev.yml`: Placeholder configuration for a `dev` profile, intended for a provisioned development database (e.g., postgresql). Uses console logging.
-    -   To use this profile, you'll need to set environment variables like `DB_URL_DEV`, `DB_USERNAME_DEV`, `DB_PASSWORD_DEV`.
--   Other profiles (`qa`, `preprod`, `prod`) can be added similarly.
+## Project Structure
 
-**Log4j2 Configuration**:
-Logging is configured via `src/main/resources/log4j2.xml`.
--   For the `local` profile (when `logging.file.name` is set in `application-local.yml`), logs will be written to `./logs/weather-service-local.log`.
--   For other profiles, logs are typically directed to the console.
-
-### Building the Project
-
-To build the project and package it into a JAR file, run the following Maven command from the project root directory:
-
-```bash
-mvn clean package
+```
+weather/
+├── src/main/java/com/weather/
+│   ├── controller/          # REST controllers
+│   ├── service/            # Business logic layer
+│   │   └── impl/           # Service implementations
+│   ├── repository/         # R2DBC repositories
+│   ├── entity/             # JPA entities (with Lombok)
+│   ├── dto/                # Data Transfer Objects (Java Records)
+│   ├── mapper/             # MapStruct mappers
+│   ├── config/             # Configuration classes
+│   ├── exception/          # Custom exceptions & global error handler
+│   ├── health/             # Custom health indicators
+│   └── WeatherServiceApplication.java
+├── src/main/resources/
+│   ├── application.yml     # Base configuration
+│   ├── application-local.yml  # H2 local configuration
+│   ├── application-dev.yml    # SQL Server dev configuration
+│   ├── log4j2.xml         # Logging configuration
+│   ├── schema.sql         # H2 database schema
+│   ├── schema-mssql.sql   # SQL Server schema
+│   └── data.sql           # Sample data for H2
+├── src/test/              # Unit and integration tests
+├── Dockerfile             # Multi-stage Docker build
+├── docker-compose.yml     # Docker Compose configuration
+└── README.md
 ```
 
-This command will also run unit tests. To skip tests during the build:
+## Building the Project
 
+### Build with tests:
 ```bash
-mvn clean package -DskipTests
+./mvnw clean package
 ```
 
-### Running the Application
+### Build without tests:
+```bash
+./mvnw clean package -DskipTests
+```
 
-You can run the application using Maven or by executing the JAR file directly.
+### Clean and install dependencies:
+```bash
+./mvnw clean install
+```
 
-**Using Maven:**
+## Running the Application
 
--   **Local Profile (H2 database):**
-    ```bash
-    mvn spring-boot:run -Dspring-boot.run.profiles=local
-    ```
-    (If no profile is specified, Spring Boot might not pick one up by default unless `spring.profiles.active` is set in `application.yml`, which is not the case here to enforce explicit profile activation).
+### Option 1: Using Maven (Recommended for Development)
+```bash
+./mvnw spring-boot:run -Dspring-boot.run.profiles=local
+```
 
--   **Dev Profile (requires environment variables for DB connection):**
-    Ensure `DB_URL_DEV`, `DB_USERNAME_DEV`, `DB_PASSWORD_DEV` are set in your environment.
-    ```bash
-    mvn spring-boot:run -Dspring-boot.run.profiles=dev
-    ```
+### Option 2: Using JAR file
+```bash
+# Build first
+./mvnw clean package
 
-**Using the JAR file:**
+# Run with local profile (H2 database)
+java -jar target/weather-service-0.0.1-SNAPSHOT.jar --spring.profiles.active=local
+```
 
-After building the project with `mvn clean package`, the JAR file will be located in the `target/` directory (e.g., `weather-service-0.0.1-SNAPSHOT.jar`).
+### Option 3: Using Docker
+```bash
+# Build and run with Docker Compose
+docker-compose up weather-service
 
--   **Local Profile:**
-    ```bash
-    java -jar target/weather-service-0.0.1-SNAPSHOT.jar --spring.profiles.active=local
-    ```
+# Or build and run manually
+docker build -t weather-service .
+docker run -p 8080:8080 -e SPRING_PROFILES_ACTIVE=local weather-service
+```
 
--   **Dev Profile:**
-    ```bash
-    java -jar target/weather-service-0.0.1-SNAPSHOT.jar --spring.profiles.active=dev
-    ```
-    (Ensure environment variables for DB connection are set).
+**Application will start on:** http://localhost:8080
 
-The application typically starts on port `8080` (configurable via `SERVER_PORT` or in `application-<profile>.yml`).
-Management endpoints are on port `8081` (configurable via `MGMT_PORT`).
+## Health Checks & Monitoring
 
-## API Endpoints
+Before testing the API, verify that all components are healthy:
 
-The main API endpoints are rooted at `/api/v1/weather`.
+### 1. Application Health Check
+```bash
+curl http://localhost:8080/management/health
+```
+**Expected Response:**
+```json
+{
+  "status": "UP",
+  "groups": ["liveness", "readiness"]
+}
+```
 
--   `POST /api/v1/weather`: Add a new weather record.
--   `GET /api/v1/weather/{id}`: Get a weather record by its ID.
--   `GET /api/v1/weather/city/{city}`: Get weather records for a specific city (paginated).
--   `GET /api/v1/weather/city/{city}/latest`: Get the latest weather record for a city.
--   `GET /api/v1/weather/range?start=<datetime>&end=<datetime>`: Get weather records within a date range (paginated).
--   `GET /api/v1/weather/city/{city}/range?start=<datetime>&end=<datetime>`: Get weather records for a city within a date range (paginated).
--   `PUT /api/v1/weather/{id}`: Update an existing weather record.
--   `DELETE /api/v1/weather/{id}`: Delete a weather record.
+### 2. Detailed Health Information
+```bash
+curl "http://localhost:8080/management/health?show-details=always"
+```
 
-### Health Checks
+### 3. Deep Health Check (Custom Endpoint)
+```bash
+curl http://localhost:8080/management/deephealth
+```
+**Monitors:**
+- Database connectivity and response time
+- Circuit breaker states
+- Rate limiter status
+- Retry metrics
+- Time limiter performance
 
-Spring Boot Actuator health endpoints are available under `/management` (default port `8081`):
+### 4. Application Info
+```bash
+curl http://localhost:8080/management/info
+```
 
--   **Standard Health**: `http://localhost:8081/management/health`
-    -   Shows aggregated status. Add `?show-details=always` or configure `management.endpoint.health.show-details=always` for more details.
--   **Deep Health (Custom Aggregation)**: `http://localhost:8081/management/deephealth`
-    -   Provides a detailed view of all custom `ReactiveHealthIndicator` beans.
--   **Liveness Probe**: `http://localhost:8081/management/health/liveness`
--   **Readiness Probe**: `http://localhost:8081/management/health/readiness`
+### 5. Resilience Metrics
+Check individual resilience components:
+```bash
+# Circuit breaker metrics
+curl http://localhost:8080/management/metrics/resilience4j.circuitbreaker.calls
 
-### Swagger API Documentation
+# Retry metrics  
+curl http://localhost:8080/management/metrics/resilience4j.retry.calls
 
-Once the application is running, API documentation is available via Swagger UI:
+# Rate limiter metrics
+curl http://localhost:8080/management/metrics/resilience4j.ratelimiter.calls
+```
 
--   `http://localhost:8080/swagger-ui.html` (assuming server port is 8080)
+**✅ All health checks should return `UP` status before proceeding to API testing.**
 
-The OpenAPI v3 specification is available at:
+## API Testing with Swagger UI
 
--   `http://localhost:8080/v3/api-docs`
+### Access Swagger UI
+Open your browser and navigate to: **http://localhost:8080/swagger-ui.html**
+
+### Pre-populated Sample Data
+The H2 database comes with sample weather data for these cities:
+- New York, USA
+- London, UK  
+- Tokyo, Japan
+- Sydney, Australia
+- Mumbai, India
+- Berlin, Germany
+- Toronto, Canada
+- Paris, France
+
+### Testing Workflow with Swagger UI
+
+#### 1. **GET All Cities**
+- Endpoint: `GET /api/v1/weather/cities`
+- Click "Try it out" → "Execute"
+- **Expected**: List of available cities
+
+#### 2. **GET Latest Weather for a City**
+- Endpoint: `GET /api/v1/weather/city/{city}/latest`
+- Enter city: `New York`
+- **Expected**: Latest weather data for New York
+
+#### 3. **GET Weather by City (Paginated)**
+- Endpoint: `GET /api/v1/weather/city/{city}`
+- Enter city: `London`
+- page: `0`, size: `5`
+- **Expected**: Paginated weather data for London
+
+#### 4. **GET Weather by ID**
+- Endpoint: `GET /api/v1/weather/{id}`
+- Enter id: `1`
+- **Expected**: Weather data with ID 1
+
+#### 5. **POST Create New Weather Data**
+- Endpoint: `POST /api/v1/weather`
+- Use the pre-filled example or modify:
+```json
+{
+  "city": "San Francisco",
+  "country": "USA",
+  "temperature": 18.5,
+  "humidity": 72,
+  "pressure": 1015.30,
+  "windSpeed": 6.2,
+  "windDirection": "W",
+  "weatherCondition": "Foggy",
+  "description": "Morning fog with cool breeze",
+  "recordedAt": "2024-01-15T08:00:00"
+}
+```
+
+#### 6. **GET Weather by Date Range**
+- Endpoint: `GET /api/v1/weather/range`
+- start: `2024-01-15T00:00:00`
+- end: `2024-01-15T23:59:59`
+- **Expected**: All weather data for January 15, 2024
+
+#### 7. **PUT Update Weather Data**
+- First create or get an existing ID
+- Endpoint: `PUT /api/v1/weather/{id}`
+- Modify the weather data and submit
+
+#### 8. **DELETE Weather Data**
+- Endpoint: `DELETE /api/v1/weather/{id}`
+- Enter an existing ID
+- **Expected**: 204 No Content response
+
+### Default Example Values in Swagger
+
+The Swagger UI comes with pre-configured example values:
+
+**WeatherDataRequest Example:**
+```json
+{
+  "city": "New York",
+  "country": "USA", 
+  "temperature": 22.5,
+  "humidity": 65,
+  "pressure": 1013.25,
+  "windSpeed": 5.2,
+  "windDirection": "NW",
+  "weatherCondition": "Clear",
+  "description": "Clear skies with light winds",
+  "recordedAt": "2024-01-15T10:00:00"
+}
+```
+
+These examples are defined in the DTO annotations and will work seamlessly with the H2 database.
+
+## API Endpoints Reference
+
+### Core Weather Endpoints
+| Method | Endpoint | Description | Parameters |
+|--------|----------|-------------|------------|
+| POST | `/api/v1/weather` | Create weather data | Request body |
+| GET | `/api/v1/weather/{id}` | Get weather by ID | `id` (path) |
+| GET | `/api/v1/weather/city/{city}` | Get weather by city | `city` (path), `page`, `size` |
+| GET | `/api/v1/weather/city/{city}/latest` | Get latest weather for city | `city` (path) |
+| GET | `/api/v1/weather/range` | Get weather by date range | `start`, `end`, `page`, `size` |
+| GET | `/api/v1/weather/city/{city}/range` | Get weather by city and date range | `city`, `start`, `end`, `page`, `size` |
+| PUT | `/api/v1/weather/{id}` | Update weather data | `id` (path), Request body |
+| DELETE | `/api/v1/weather/{id}` | Delete weather data | `id` (path) |
+| GET | `/api/v1/weather/cities` | Get all cities | None |
+
+### Management Endpoints
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/management/health` | Application health |
+| GET | `/management/deephealth` | Detailed health check |
+| GET | `/management/info` | Application information |
+| GET | `/management/metrics` | Application metrics |
+
+### Documentation Endpoints
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/swagger-ui.html` | Swagger UI |
+| GET | `/v3/api-docs` | OpenAPI specification |
 
 ## Development Workflow
 
-1.  Make code changes.
-2.  Write or update unit tests.
-3.  Run `mvn clean install` to build and run tests.
-4.  Run the application with the desired profile (e.g., `local`).
-5.  Test endpoints using Swagger UI, cURL, or a REST client like Postman.
+1. **Make code changes**
+2. **Run tests**: `./mvnw test`
+3. **Build application**: `./mvnw clean package`
+4. **Start with local profile**: `./mvnw spring-boot:run -Dspring-boot.run.profiles=local`
+5. **Verify health**: Check all health endpoints
+6. **Test with Swagger UI**: http://localhost:8080/swagger-ui.html
+7. **Check logs**: `./logs/weather-service-local.log`
+
+## Configuration
+
+### Profiles
+- **local**: H2 in-memory database, file logging, debug mode
+- **dev**: SQL Server database, console logging, debug mode
+
+### Key Configuration Files
+- `application.yml`: Base configuration, resilience settings
+- `application-local.yml`: H2 database, local logging
+- `application-dev.yml`: SQL Server configuration
+- `log4j2.xml`: Logging levels and appenders
+
+### Environment Variables (Dev Profile)
+```bash
+export DB_URL_DEV=r2dbc:mssql://localhost:1433/weatherdb
+export DB_USERNAME_DEV=weather_user
+export DB_PASSWORD_DEV=your_password
+```
+
+## Docker Support
+
+### Single Service
+```bash
+docker-compose up weather-service
+```
+
+### Development Environment with SQL Server
+```bash
+docker-compose --profile dev up
+```
+
+### Manual Docker Build
+```bash
+docker build -t weather-service .
+docker run -p 8080:8080 -e SPRING_PROFILES_ACTIVE=local weather-service
+```
 
 ## Logging
 
--   Logging is handled by Log4j2, configured in `src/main/resources/log4j2.xml`.
--   **Local Profile**: Logs to console and to `./logs/weather-service-local.log`.
-    -   `com.weather` package logs at `DEBUG` level.
-    -   R2DBC and H2 logs at `DEBUG` for detailed local troubleshooting.
--   **Other Profiles (e.g., dev)**: Logs to console.
-    -   `com.weather` package logs at `DEBUG` level.
-    -   Framework logs (Spring, R2DBC) typically at `INFO`.
+### Log Levels
+- **Local Profile**: DEBUG level for `com.weather`, detailed R2DBC logging
+- **Other Profiles**: INFO level for frameworks, DEBUG for application
+
+### Log Files
+- **Local**: `./logs/weather-service-local.log`
+- **Console**: Real-time colored output
+
+### Key Log Categories
+- `com.weather`: Application logs
+- `org.springframework.r2dbc`: Database operations
+- `io.github.resilience4j`: Resilience component events
 
 ## Error Handling
 
--   A `GlobalErrorWebExceptionHandler` provides standardized JSON error responses.
--   Custom exceptions (`BaseException` and its subclasses) are used for specific error scenarios.
--   Validation errors (JSR-380) are also handled and returned in a structured format.
--   Error Response DTO: `com.weather.common.dto.ErrorResponse`.
+### Global Exception Handler
+- Catches all exceptions and returns standardized JSON responses
+- Handles validation errors with field-level details
+- Provides correlation with timestamp and request path
 
-## Resilience
+### Error Response Format
+```json
+{
+  "code": "WEATHER_NOT_FOUND",
+  "message": "Weather data not found with id: 123",
+  "status": 404,
+  "path": "/api/v1/weather/123",
+  "timestamp": "2024-01-15T10:30:00",
+  "validationErrors": null
+}
+```
 
-Resilience patterns are implemented using Resilience4j:
+## Resilience Patterns
 
--   **Circuit Breaker**: Applied to database operations and external service calls (if any).
--   **Retry**: Applied to database operations and external service calls.
--   **Rate Limiter**: Can be configured for specific endpoints or services.
--   **Time Limiter**: Can be configured for operations that might hang.
+### Circuit Breaker
+- **Sliding window**: 10 calls
+- **Failure threshold**: 50%
+- **Wait duration**: 10 seconds
+- **Half-open calls**: 3
 
-Configurations are in `application.yml` (global defaults and instance-specific) and `ResilienceConfig.java` (programmatic defaults). Health indicators for these components are available.
+### Retry
+- **Max attempts**: 3
+- **Wait duration**: 1 second
+- **Retry on**: DataAccessException, SQLException
 
-## Dockerization
+### Rate Limiter
+- **Requests per second**: 100
+- **Timeout**: 1 second
 
-(Instructions to be added once Dockerfile is finalized and tested)
+### Time Limiter
+- **Timeout**: 3 seconds
+- **Cancel running futures**: true
+
+All resilience metrics are available via health checks and monitoring endpoints.
 
 ---
 
-This README provides a starting point. It should be updated as the project evolves.
+**🎉 Your Weather Service is ready! Start with the health checks, then explore the API using Swagger UI.**

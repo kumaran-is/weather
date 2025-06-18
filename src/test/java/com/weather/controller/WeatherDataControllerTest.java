@@ -33,34 +33,34 @@ class WeatherDataControllerTest {
 
     @BeforeEach
     void setUp() {
-        testRequest = WeatherDataRequest.builder()
-                .city("Test City")
-                .country("Test Country")
-                .temperature(new BigDecimal("25.5"))
-                .humidity(60)
-                .pressure(new BigDecimal("1013.25"))
-                .windSpeed(new BigDecimal("5.2"))
-                .windDirection("NW")
-                .weatherCondition("Clear")
-                .description("Clear skies")
-                .recordedAt(LocalDateTime.now().minusHours(1))
-                .build();
+        testRequest = new WeatherDataRequest(
+                "Test City",
+                "Test Country",
+                new BigDecimal("25.5"),
+                60,
+                new BigDecimal("1013.25"),
+                new BigDecimal("5.2"),
+                "NW",
+                "Clear",
+                "Clear skies",
+                LocalDateTime.now().minusHours(1)
+        );
 
-        testResponse = WeatherDataResponse.builder()
-                .id(1L)
-                .city("Test City")
-                .country("Test Country")
-                .temperature(new BigDecimal("25.5"))
-                .humidity(60)
-                .pressure(new BigDecimal("1013.25"))
-                .windSpeed(new BigDecimal("5.2"))
-                .windDirection("NW")
-                .weatherCondition("Clear")
-                .description("Clear skies")
-                .recordedAt(LocalDateTime.now().minusHours(1))
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
+        testResponse = new WeatherDataResponse(
+                1L,
+                "Test City",
+                "Test Country",
+                new BigDecimal("25.5"),
+                60,
+                new BigDecimal("1013.25"),
+                new BigDecimal("5.2"),
+                "NW",
+                "Clear",
+                "Clear skies",
+                LocalDateTime.now().minusHours(1),
+                LocalDateTime.now(),
+                LocalDateTime.now()
+        );
     }
 
     @Test
@@ -77,8 +77,8 @@ class WeatherDataControllerTest {
                 .expectHeader().contentType(MediaType.APPLICATION_JSON)
                 .expectBody(WeatherDataResponse.class)
                 .value(response -> {
-                    assert response.getId().equals(1L);
-                    assert response.getCity().equals("Test City");
+                    assert response.id().equals(1L);
+                    assert response.city().equals("Test City");
                 });
     }
 
@@ -94,18 +94,25 @@ class WeatherDataControllerTest {
                 .expectHeader().contentType(MediaType.APPLICATION_JSON)
                 .expectBody(WeatherDataResponse.class)
                 .value(response -> {
-                    assert response.getId().equals(1L);
-                    assert response.getCity().equals("Test City");
+                    assert response.id().equals(1L);
+                    assert response.city().equals("Test City");
                 });
     }
 
     @Test
     void createWeatherData_WithInvalidData_ShouldReturnBadRequest() {
-        WeatherDataRequest invalidRequest = WeatherDataRequest.builder()
-                .city("") // Invalid: empty city
-                .temperature(new BigDecimal("150")) // Invalid: temperature too high
-                .recordedAt(LocalDateTime.now().plusHours(1)) // Invalid: future date
-                .build();
+        WeatherDataRequest invalidRequest = new WeatherDataRequest(
+                "", // Invalid: empty city
+                null,
+                new BigDecimal("150"), // Invalid: temperature too high
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                LocalDateTime.now().plusHours(1) // Invalid: future date
+        );
 
         webTestClient.post()
                 .uri("/api/v1/weather")

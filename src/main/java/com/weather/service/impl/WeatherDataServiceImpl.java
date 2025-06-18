@@ -204,17 +204,17 @@ public class WeatherDataServiceImpl implements WeatherDataService {
     private <T> PageResponse<T> buildPageResponse(List<T> content, int page, int size, long totalElements) {
         int totalPages = (int) Math.ceil((double) totalElements / size);
         
-        return PageResponse.<T>builder()
-                .content(content)
-                .page(page)
-                .size(size)
-                .totalElements(totalElements)
-                .totalPages(totalPages)
-                .first(page == 0)
-                .last(page >= totalPages - 1)
-                .numberOfElements(content.size())
-                .empty(content.isEmpty())
-                .build();
+        return new PageResponse<>(
+                content,
+                page,
+                size,
+                totalElements,
+                totalPages,
+                page == 0,
+                page >= totalPages - 1,
+                content.size(),
+                content.isEmpty()
+        );
     }
     
     private Throwable mapToServiceException(Throwable throwable) {

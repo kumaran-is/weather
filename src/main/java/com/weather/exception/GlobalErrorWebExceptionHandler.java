@@ -52,42 +52,44 @@ public class GlobalErrorWebExceptionHandler implements ErrorWebExceptionHandler 
         LocalDateTime timestamp = LocalDateTime.now();
         
         if (ex instanceof BaseException baseEx) {
-            return ErrorResponse.builder()
-                    .code(baseEx.getCode())
-                    .message(baseEx.getMessage())
-                    .status(baseEx.getHttpStatus().value())
-                    .path(path)
-                    .timestamp(timestamp)
-                    .build();
+            return new ErrorResponse(
+                    baseEx.getCode(),
+                    baseEx.getMessage(),
+                    baseEx.getHttpStatus().value(),
+                    path,
+                    timestamp,
+                    null
+            );
         }
         
         if (ex instanceof WebExchangeBindException bindEx) {
             List<ErrorResponse.ValidationError> validationErrors = bindEx.getFieldErrors()
                     .stream()
-                    .map(fieldError -> ErrorResponse.ValidationError.builder()
-                            .field(fieldError.getField())
-                            .rejectedValue(fieldError.getRejectedValue())
-                            .message(fieldError.getDefaultMessage())
-                            .build())
+                    .map(fieldError -> new ErrorResponse.ValidationError(
+                            fieldError.getField(),
+                            fieldError.getRejectedValue(),
+                            fieldError.getDefaultMessage()
+                    ))
                     .collect(Collectors.toList());
             
-            return ErrorResponse.builder()
-                    .code("VALIDATION_ERROR")
-                    .message("Validation failed")
-                    .status(HttpStatus.BAD_REQUEST.value())
-                    .path(path)
-                    .timestamp(timestamp)
-                    .validationErrors(validationErrors)
-                    .build();
+            return new ErrorResponse(
+                    "VALIDATION_ERROR",
+                    "Validation failed",
+                    HttpStatus.BAD_REQUEST.value(),
+                    path,
+                    timestamp,
+                    validationErrors
+            );
         }
         
         // Default error response
-        return ErrorResponse.builder()
-                .code("INTERNAL_SERVER_ERROR")
-                .message("An unexpected error occurred")
-                .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                .path(path)
-                .timestamp(timestamp)
-                .build();
+        return new ErrorResponse(
+                "INTERNAL_SERVER_ERROR",
+                "An unexpected error occurred",
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                path,
+                timestamp,
+                null
+        );
     }
 }
