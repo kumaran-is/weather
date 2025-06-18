@@ -30,7 +30,7 @@ This service provides RESTful endpoints to record, retrieve, update, and delete 
 -   CRUD operations for weather data.
 -   Reactive API endpoints.
 -   H2 in-memory database for local development.
--   Support for other R2DBC-compatible databases for different environments (e.g., Azure SQL Server).
+-   Support for other R2DBC-compatible databases for different environments (e.g., postgresql Server).
 -   Centralized configuration management.
 -   Comprehensive health checks (application, database, resilience components).
 -   Global error handling with standardized error responses.
@@ -77,7 +77,7 @@ The application uses YAML-based configuration files located in `src/main/resourc
 
 -   `application.yml`: Base configuration, common to all profiles.
 -   `application-local.yml`: Configuration for the `local` profile (default for quick local runs). Uses H2 in-memory database and file-based logging.
--   `application-dev.yml`: Placeholder configuration for a `dev` profile, intended for a provisioned development database (e.g., Azure SQL). Uses console logging.
+-   `application-dev.yml`: Placeholder configuration for a `dev` profile, intended for a provisioned development database (e.g., postgresql). Uses console logging.
     -   To use this profile, you'll need to set environment variables like `DB_URL_DEV`, `DB_USERNAME_DEV`, `DB_PASSWORD_DEV`.
 -   Other profiles (`qa`, `preprod`, `prod`) can be added similarly.
 
