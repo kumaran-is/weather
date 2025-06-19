@@ -7,12 +7,12 @@ import org.springframework.boot.actuate.health.ReactiveHealthIndicator;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -26,11 +26,12 @@ public class DeepHealthController {
     public Mono<Map<String, Object>> deepHealth() {
         log.debug("Executing deep health check");
         
-        return Mono.fromCallable(() -> healthIndicators.stream()
-                .collect(Collectors.toMap(
-                        indicator -> indicator.getClass().getSimpleName(),
-                        indicator -> indicator.health().block() // Note: blocking for simplicity in this endpoint
-                )))
+        return Flux.fromIterable(healthIndicators)
+                .flatMap(indicator -> 
+                    indicator.health()
+                        .map(health -> Map.entry(indicator.getClass().getSimpleName(), health))
+                )
+                .collectMap(Map.Entry::getKey, Map.Entry::getValue)
                 .map(healthMap -> {
                     return Map.<String, Object>of(
                         "timestamp", LocalDateTime.now(),

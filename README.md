@@ -13,6 +13,7 @@ A reactive REST service for managing weather data, built with Java 21, Spring Bo
 - [Building the Project](#building-the-project)
 - [Running the Application](#running-the-application)
 - [Health Checks & Monitoring](#health-checks--monitoring)
+- [Database Access via H2 Console](#database-access-via-h2-console)
 - [API Testing with Swagger UI](#api-testing-with-swagger-ui)
 - [API Endpoints Reference](#api-endpoints-reference)
 - [Development Workflow](#development-workflow)
@@ -84,6 +85,7 @@ This service provides RESTful endpoints to record, retrieve, update, and delete 
    - **Swagger UI**: http://localhost:8080/swagger-ui.html
    - **Health Check**: http://localhost:8080/management/health
    - **API Base**: http://localhost:8080/api/v1/weather
+   - **H2 Console**: http://localhost:8080/h2-console
 
 ## Project Structure
 
@@ -212,6 +214,74 @@ curl http://localhost:8080/management/metrics/resilience4j.ratelimiter.calls
 
 **✅ All health checks should return `UP` status before proceeding to API testing.**
 
+## Database Access via H2 Console
+
+When running with the `local` profile, you can access the H2 in-memory database through a web console to inspect and query the data directly.
+
+### Accessing H2 Console
+1. **Open your browser** and navigate to: **http://localhost:8080/h2-console**
+
+2. **Login with these credentials:**
+   - **JDBC URL**: `jdbc:h2:mem:testdb` 
+   - **Username**: `sa`
+   - **Password**: (leave empty - no password)
+   - **Driver Class**: `org.h2.Driver` (auto-filled)
+
+3. **Click "Test Connection"** first to verify, then **"Connect"** to access the database
+
+### Troubleshooting H2 Console Access
+If you're having issues connecting:
+
+1. **Ensure the application is running** with the `local` profile:
+   ```bash
+   ./mvnw spring-boot:run -Dspring-boot.run.profiles=local
+   ```
+
+2. **Try these alternative JDBC URLs** if the default doesn't work:
+   - `jdbc:h2:mem:testdb` (simple format)
+   - `jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE` (with parameters)
+   - Check the application logs for the actual H2 URL being used
+
+3. **Verify H2 console is enabled** by checking the logs for:
+   ```
+   H2 console available at '/h2-console'
+   ```
+
+4. **Make sure you're using the correct port**: `8080` (default)
+
+### Available Tables
+- **`weather_data`**: Main table containing all weather records
+- **`city_lookup`**: Reference table for city information (if applicable)
+
+### Sample Queries
+```sql
+-- View all weather data
+SELECT * FROM weather_data ORDER BY recorded_at DESC;
+
+-- Get weather data for a specific city
+SELECT * FROM weather_data WHERE city = 'New York' ORDER BY recorded_at DESC;
+
+-- Get latest weather data for each city
+SELECT city, MAX(recorded_at) as latest_record 
+FROM weather_data 
+GROUP BY city;
+
+-- Count total records
+SELECT COUNT(*) as total_records FROM weather_data;
+
+-- Average temperature by city
+SELECT city, AVG(temperature) as avg_temp 
+FROM weather_data 
+GROUP BY city 
+ORDER BY avg_temp DESC;
+```
+
+### Notes
+- ⚠️ **H2 Console is only available in local profile** for security reasons
+- 🔄 **Data is reset on application restart** (in-memory database)
+- 📊 **Sample data is automatically loaded** from `data.sql` on startup
+- 🔍 **Use this for debugging and data verification** during development
+
 ## API Testing with Swagger UI
 
 ### Access Swagger UI
@@ -335,6 +405,7 @@ These examples are defined in the DTO annotations and will work seamlessly with 
 |--------|----------|-------------|
 | GET | `/swagger-ui.html` | Swagger UI |
 | GET | `/v3/api-docs` | OpenAPI specification |
+| GET | `/h2-console` | H2 Database Console (local profile only) |
 
 ## Development Workflow
 

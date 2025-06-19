@@ -25,10 +25,22 @@ management:
       show-details: when_authorized
       probes:
         enabled: true
+    info:
+      enabled: true
   health:
     livenessstate:
       enabled: true
     readinessstate:
+      enabled: true
+  info:
+    build:
+      enabled: true
+    git:
+      enabled: true
+      mode: full
+    java:
+      enabled: true
+    os:
       enabled: true
 
 # OpenAPI/Swagger Configuration
@@ -88,3 +100,13 @@ logging:
     io.r2dbc.h2: INFO
     org.springframework.security: INFO
     io.github.resilience4j: DEBUG
+
+# Custom application info
+info:
+  app:
+    name: "@project.name@"
+    description: "@project.description@"
+    version: "@project.version@"
+    encoding: "@project.build.sourceEncoding@"
+    java:
+      version: "@java.version@"
