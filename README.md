@@ -469,6 +469,152 @@ kubectl describe pod <pod-name>
 az containerapp revision list --name weather-service --resource-group myRG
 ```
 
+### **⚠️ Handling Probe Failures & Restart Loops**
+
+#### **Liveness Probe Restart Loop Prevention**
+
+If liveness probes keep failing, Azure will continuously restart containers, creating an endless restart loop. Here's how to prevent and troubleshoot this:
+
+**Common Causes of Restart Loops:**
+1. **Startup takes too long** - Spring Boot needs time to initialize
+2. **Resource constraints** - Insufficient CPU/memory
+3. **Application errors** - Unhandled exceptions during startup
+4. **Network issues** - Probe endpoint unreachable
+5. **Misconfigured probe timing** - Too aggressive timing settings
+
+#### **Prevention Strategies**
+
+**1. Use Startup Probes (Recommended for Spring Boot)**
+```yaml
+# AKS Configuration
+startupProbe:
+  httpGet:
+    path: /management/health/liveness
+    port: 8080
+  initialDelaySeconds: 15
+  periodSeconds: 10
+  failureThreshold: 30        # Allow 5 minutes for startup (30 × 10s)
+  timeoutSeconds: 5
+
+livenessProbe:
+  httpGet:
+    path: /management/health/liveness
+    port: 8080
+  initialDelaySeconds: 60     # Only start after startup probe succeeds
+  periodSeconds: 30           # Less frequent checks
+  failureThreshold: 5         # More tolerance (5 × 30s = 2.5min before restart)
+  timeoutSeconds: 10
+```
+
+**2. Graceful Degradation Strategy**
+Configure your liveness probe to be more forgiving than readiness:
+```yaml
+# Liveness: Only fail if app is truly dead
+livenessProbe:
+  failureThreshold: 5         # Wait 2.5 minutes before restart
+  
+# Readiness: Fail quickly to stop traffic
+readinessProbe:
+  failureThreshold: 3         # Stop traffic after 30 seconds
+```
+
+**3. Resource Allocation**
+```yaml
+resources:
+  requests:
+    memory: "1Gi"             # Minimum for Spring Boot
+    cpu: "500m"
+  limits:
+    memory: "2Gi"             # Prevent OOM kills
+    cpu: "1000m"
+```
+
+#### **Troubleshooting Restart Loops**
+
+**Step 1: Check Container Logs**
+```bash
+# Azure Container Instances
+az container logs --resource-group myRG --name weather-service
+
+# AKS
+kubectl logs -l app=weather-service --previous  # Previous crashed instance
+kubectl logs -l app=weather-service -f          # Follow current logs
+
+# Container Apps
+az containerapp logs show --name weather-service --resource-group myRG
+```
+
+**Step 2: Check Resource Usage**
+```bash
+# AKS resource usage
+kubectl top pods -l app=weather-service
+
+# Describe pod for events
+kubectl describe pod <pod-name>
+```
+
+**Step 3: Test Probe Endpoints Manually**
+```bash
+# Port-forward to test locally (AKS)
+kubectl port-forward pod/<pod-name> 8080:8080
+
+# Test the probe endpoints
+curl http://localhost:8080/management/health/liveness
+curl http://localhost:8080/management/health/readiness
+```
+
+#### **Emergency Troubleshooting Configuration**
+
+If stuck in restart loop, temporarily disable probes to debug:
+
+```yaml
+# Temporary debugging configuration
+livenessProbe:
+  httpGet:
+    path: /management/health/liveness
+    port: 8080
+  initialDelaySeconds: 300    # Wait 5 minutes
+  periodSeconds: 60           # Check every minute
+  failureThreshold: 10        # Very tolerant
+  timeoutSeconds: 30
+```
+
+#### **Application-Level Solutions**
+
+**1. Health Check Endpoint Resilience**
+Our application already implements this in `/management/health/liveness` - it only fails if the Spring context is truly broken.
+
+**2. Graceful Shutdown**
+```yaml
+# In application.yml
+spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+server:
+  shutdown: graceful
+```
+
+**3. JVM Optimization**
+```yaml
+# Container environment variables
+environment:
+  - name: JAVA_OPTS
+    value: "-Xms1g -Xmx1g -XX:+UseG1GC -XX:+UseContainerSupport"
+```
+
+#### **Monitoring & Alerting**
+
+Set up alerts for restart patterns:
+```bash
+# Azure Monitor alert for container restarts
+az monitor metrics alert create \
+  --name "weather-service-restart-alert" \
+  --resource-group myRG \
+  --scopes "/subscriptions/<sub-id>/resourceGroups/myRG/providers/Microsoft.ContainerInstance/containerGroups/weather-service" \
+  --condition "count ContainerRestartCount > 3" \
+  --description "Weather service restarting too frequently"
+```
+
 The probes ensure your Weather Service runs reliably in Azure with automatic recovery, intelligent traffic routing, and seamless deployments! 🚀
 
 ## Database Access and Inspection
