@@ -1,5 +1,15 @@
 # Weather Service
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/kumaran-is/weather)
+[![Java](https://img.shields.io/badge/Java-21-orange?style=flat-square&logo=openjdk)](https://openjdk.org/projects/jdk/21/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4.5-brightgreen?style=flat-square&logo=spring-boot)](https://spring.io/projects/spring-boot)
+[![WebFlux](https://img.shields.io/badge/Spring-WebFlux-green?style=flat-square&logo=spring)](https://docs.spring.io/spring-framework/docs/current/reference/html/web-reactive.html)
+[![R2DBC](https://img.shields.io/badge/R2DBC-Reactive-blue?style=flat-square&logo=postgresql)](https://r2dbc.io/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-blue?style=flat-square&logo=docker)](https://www.docker.com/)
+[![Azure](https://img.shields.io/badge/Azure-Compatible-0078d4?style=flat-square&logo=microsoft-azure)](https://azure.microsoft.com/)
+[![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
+[![Build Status](https://img.shields.io/badge/Build-Passing-success?style=flat-square&logo=github-actions)](https://github.com/yourusername/weather-service/actions)
+
 A reactive REST service for managing weather data, built with Java 21, Spring Boot 3.4.5, and Spring WebFlux.
 
 ## Table of Contents
