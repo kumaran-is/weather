@@ -518,6 +518,8 @@ readinessProbe:
   failureThreshold: 3         # Stop traffic after 30 seconds
 ```
 
+⚠️ **IMPORTANT:** `failureThreshold: 3` means "restart after 3 consecutive failed checks" - it does NOT limit total restart attempts!
+
 **3. Resource Allocation**
 ```yaml
 resources:
@@ -614,6 +616,303 @@ az monitor metrics alert create \
   --condition "count ContainerRestartCount > 3" \
   --description "Weather service restarting too frequently"
 ```
+
+### **🛡️ Excessive Restart Prevention Strategies**
+
+#### **1. Restart Policy Configuration**
+
+**❌ Common Misconception:**
+`failureThreshold: 3` does NOT limit total restarts to 3 attempts. It means:
+- Check 3 times consecutively
+- If all 3 fail → restart container  
+- After restart → check 3 times again
+- **Result: Endless restart loop!**
+
+**✅ To Actually Limit Restarts:**
+
+**Azure Container Instances (ACI):**
+```yaml
+# Limit restart attempts
+properties:
+  restartPolicy: OnFailure    # Options: Always, OnFailure, Never
+  containers:
+  - name: weather-service
+    properties:
+      # If container exits successfully (code 0), don't restart
+      # Only restart on failure, but Azure will still respect probe failures
+      
+# ⚠️ Note: ACI doesn't have built-in restart limits
+# You need external monitoring to stop excessive restarts
+```
+
+**Azure Kubernetes Service (AKS):**
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+spec:
+  # ✅ This controls deployment rollout, not individual pod restarts
+  progressDeadlineSeconds: 600    # Stop deployment after 10 minutes
+  
+  template:
+    spec:
+      # ⚠️ restartPolicy: Always means pods restart infinitely
+      restartPolicy: Always
+      containers:
+      - name: weather-service
+        # Use startup probe to prevent premature liveness failures
+        startupProbe:
+          failureThreshold: 30      # 5 minutes grace period (30 × 10s)
+        livenessProbe:
+          failureThreshold: 5       # 5 failed checks before restart (5 × 30s = 2.5min)
+          periodSeconds: 30         # Check every 30s (not 10s)
+          
+# ✅ Kubernetes doesn't limit pod restart attempts by default
+# Use external controllers or monitoring for restart limits
+```
+
+**Azure Container Apps:**
+```yaml
+# Configure restart limits in container app revision
+properties:
+  template:
+    revisionSuffix: v1
+    containers:
+    - name: weather-service
+      probes:
+      - type: startup
+        failureThreshold: 30        # Allow long startup time
+      - type: liveness  
+        failureThreshold: 5         # More tolerant
+        periodSeconds: 30           # Less frequent checks
+```
+
+#### **2. Circuit Breaker Pattern for Restarts**
+
+**Exponential Backoff Strategy:**
+```yaml
+# AKS with custom restart controller
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: restart-policy
+data:
+  max-restarts-per-hour: "5"
+  backoff-multiplier: "2"
+  max-backoff-seconds: "300"
+---
+# Custom pod disruption budget
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: weather-service-pdb
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: weather-service
+```
+
+#### **3. Health Check Resilience**
+
+**Make Health Endpoints More Robust:**
+Our application already implements this, but here's what makes it resilient:
+
+```java
+// In our application, liveness only fails on critical issues
+@Component
+public class LivenessHealthIndicator implements HealthIndicator {
+    @Override
+    public Health health() {
+        try {
+            // Only check critical application state
+            // Don't check database, external services, etc.
+            return Health.up()
+                .withDetail("status", "Application context is alive")
+                .build();
+        } catch (Exception e) {
+            // Only fail if Spring context is truly broken
+            return Health.down()
+                .withDetail("error", "Application context failure")
+                .build();
+        }
+    }
+}
+```
+
+#### **4. Resource-Based Prevention**
+
+**Guaranteed Resources:**
+```yaml
+resources:
+  requests:
+    memory: "1.5Gi"           # Higher request to prevent OOM
+    cpu: "750m"               # Adequate CPU for startup
+  limits:
+    memory: "3Gi"             # Room for growth
+    cpu: "2000m"              # Allow bursts during startup
+    
+# JVM memory settings
+env:
+- name: JAVA_OPTS
+  value: "-Xms1g -Xmx2g -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+```
+
+**Node Affinity (AKS):**
+```yaml
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: node-type
+          operator: In
+          values: ["memory-optimized"]    # Use appropriate node types
+```
+
+#### **5. Progressive Deployment Strategy**
+
+**Blue-Green Deployment:**
+```yaml
+# Deploy new version alongside old
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+spec:
+  strategy:
+    blueGreen:
+      prePromotionAnalysis:
+        templates:
+        - templateName: health-check
+        args:
+        - name: service-name
+          value: weather-service
+      scaleDownDelaySeconds: 30
+      postPromotionAnalysis:
+        templates:
+        - templateName: health-check
+```
+
+**Canary Deployment:**
+```yaml
+# Gradual traffic shift
+spec:
+  strategy:
+    canary:
+      steps:
+      - setWeight: 10
+      - pause: {duration: 2m}
+      - analysis:
+          templates:
+          - templateName: restart-rate-check
+      - setWeight: 50
+      - pause: {duration: 5m}
+```
+
+#### **6. Startup Optimization**
+
+**Application Startup Improvements:**
+```yaml
+# In application.yml
+spring:
+  main:
+    lazy-initialization: false    # Keep false for predictable startup
+  jpa:
+    defer-datasource-initialization: true
+  sql:
+    init:
+      mode: always
+      continue-on-error: false    # Fail fast if data init fails
+
+# Parallel bean initialization
+context:
+  initializer:
+    classes: com.weather.config.ParallelBeanInitializer
+```
+
+**Container Optimization:**
+```dockerfile
+# Multi-stage build for faster startup
+FROM eclipse-temurin:21-jre-alpine AS runtime
+COPY --from=build /app/target/weather-service.jar app.jar
+
+# Optimize JVM for containers
+ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:InitialRAMPercentage=70 -XX:MaxRAMPercentage=80"
+
+# Pre-warm JVM
+RUN java -XX:DumpLoadedClassList=classes.lst -jar app.jar --dry-run || true
+```
+
+#### **7. Monitoring & Circuit Breaking**
+
+**Restart Rate Monitoring:**
+```bash
+# Azure Monitor query for restart rate
+az monitor log-analytics query \
+  --workspace "your-workspace-id" \
+  --analytics-query "
+    ContainerInstanceLog_CL
+    | where ContainerName_s == 'weather-service'
+    | where Message contains 'restart'
+    | summarize RestartCount=count() by bin(TimeGenerated, 1h)
+    | where RestartCount > 3
+  "
+```
+
+**Automatic Circuit Breaker:**
+```yaml
+# AKS deployment with restart circuit breaker
+apiVersion: apps/v1
+kind: Deployment
+spec:
+  progressDeadlineSeconds: 600    # Stop trying after 10 minutes
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+```
+
+#### **8. Emergency Stop Mechanisms**
+
+**Manual Intervention:**
+```bash
+# Stop deployment if restarts are excessive
+az container stop --resource-group myRG --name weather-service
+
+# AKS: Scale down to investigate
+kubectl scale deployment weather-service --replicas=0
+
+# Container Apps: Disable revision
+az containerapp revision deactivate --name weather-service --resource-group myRG
+```
+
+**Automated Circuit Breaker:**
+```yaml
+# Kubernetes CronJob to monitor and pause
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: restart-monitor
+spec:
+  schedule: "*/5 * * * *"    # Every 5 minutes
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: monitor
+            image: kubectl:latest
+            command:
+            - /bin/sh
+            - -c
+            - |
+              RESTARTS=$(kubectl get pods -l app=weather-service --no-headers | awk '{sum+=$4} END {print sum}')
+              if [ "$RESTARTS" -gt 10 ]; then
+                kubectl scale deployment weather-service --replicas=0
+                echo "Emergency scaling down due to excessive restarts: $RESTARTS"
+              fi
+```
+
+These strategies work together to prevent restart loops and give you control over when and how containers restart, ensuring stable service operation in Azure! 🛡️
 
 The probes ensure your Weather Service runs reliably in Azure with automatic recovery, intelligent traffic routing, and seamless deployments! 🚀
 
