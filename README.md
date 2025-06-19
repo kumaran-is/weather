@@ -13,7 +13,8 @@ A reactive REST service for managing weather data, built with Java 21, Spring Bo
 - [Building the Project](#building-the-project)
 - [Running the Application](#running-the-application)
 - [Health Checks & Monitoring](#health-checks--monitoring)
-- [Database Access via H2 Console](#database-access-via-h2-console)
+- [Liveness and Readiness Probes](#liveness-and-readiness-probes)
+- [Database Access and Inspection](#database-access-and-inspection)
 - [API Testing with Swagger UI](#api-testing-with-swagger-ui)
 - [API Endpoints Reference](#api-endpoints-reference)
 - [Development Workflow](#development-workflow)
@@ -85,7 +86,7 @@ This service provides RESTful endpoints to record, retrieve, update, and delete 
    - **Swagger UI**: http://localhost:8080/swagger-ui.html
    - **Health Check**: http://localhost:8080/management/health
    - **API Base**: http://localhost:8080/api/v1/weather
-   - **H2 Console**: http://localhost:8080/h2-console
+   - **Deep Health**: http://localhost:8080/management/deephealth
 
 ## Project Structure
 
@@ -214,40 +215,314 @@ curl http://localhost:8080/management/metrics/resilience4j.ratelimiter.calls
 
 **✅ All health checks should return `UP` status before proceeding to API testing.**
 
-## Database Access via H2 Console
+## Liveness and Readiness Probes
 
-When running with the `local` profile, you can access the H2 in-memory database through a web console to inspect and query the data directly.
+The application includes **Kubernetes-style health probes** powered by Spring Boot Actuator for robust container orchestration and monitoring.
 
-### Accessing H2 Console
-1. **Open your browser** and navigate to: **http://localhost:8080/h2-console**
+### 🔍 **Understanding the Probes**
 
-2. **Login with these credentials:**
-   - **JDBC URL**: `jdbc:h2:mem:testdb` 
-   - **Username**: `sa`
-   - **Password**: (leave empty - no password)
-   - **Driver Class**: `org.h2.Driver` (auto-filled)
+When you access `/management/health`, you see:
+```json
+{"status":"UP","groups":["liveness","readiness"]}
+```
 
-3. **Click "Test Connection"** first to verify, then **"Connect"** to access the database
+#### **Liveness Probe** - *"Is my application alive?"*
+- **Purpose**: Determines if the application process is running and responsive
+- **Endpoint**: `/management/health/liveness`
+- **Container Action**: If fails → **Container restart**
+- **What it checks**: Basic application responsiveness (Spring context, JVM health)
 
-### Troubleshooting H2 Console Access
-If you're having issues connecting:
+```bash
+curl http://localhost:8080/management/health/liveness
+# Response: {"status":"UP"} or {"status":"DOWN"}
+```
 
-1. **Ensure the application is running** with the `local` profile:
-   ```bash
-   ./mvnw spring-boot:run -Dspring-boot.run.profiles=local
+#### **Readiness Probe** - *"Is my application ready to serve traffic?"*
+- **Purpose**: Determines if the application can handle requests properly
+- **Endpoint**: `/management/health/readiness`
+- **Container Action**: If fails → **Stop routing traffic** (no restart)
+- **What it checks**: Database connections, external services, all dependencies
+
+```bash
+curl http://localhost:8080/management/health/readiness
+# Response: {"status":"UP"} or {"status":"DOWN"}
+```
+
+### 🎯 **Real-World Scenarios**
+
+| Scenario | Liveness | Readiness | Container Action |
+|----------|----------|-----------|------------------|
+| **App starting up** | UP | DOWN | No traffic until ready |
+| **Normal operation** | UP | UP | Full traffic ✅ |
+| **Database disconnected** | UP | DOWN | Stop traffic, no restart |
+| **App crashed/frozen** | DOWN | DOWN | Restart container |
+| **Memory leak/deadlock** | DOWN | UP/DOWN | Restart container |
+
+### 🚀 **Benefits**
+
+1. **Zero-downtime deployments** - Traffic switches only when new instances are ready
+2. **Automatic recovery** - Unhealthy containers restart automatically  
+3. **Traffic protection** - Users never hit broken instances
+4. **Monitoring insights** - Clear visibility into application health states
+5. **Kubernetes compatibility** - Works seamlessly with container orchestrators
+
+### ⚙️ **Configuration**
+
+Our application is configured in `application.yml`:
+```yaml
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+```
+
+### 🔧 **Testing Probes Locally**
+
+```bash
+# Test both probes individually
+curl http://localhost:8080/management/health/liveness
+curl http://localhost:8080/management/health/readiness
+
+# View detailed health information
+curl "http://localhost:8080/management/health?show-details=always"
+
+# Test what affects readiness (database, resilience components)
+curl http://localhost:8080/management/deephealth
+```
+
+## Azure Container Service Integration
+
+### **Azure Container Instances (ACI)**
+
+```yaml
+apiVersion: 2021-03-01
+location: eastus
+name: weather-service-aci
+properties:
+  containers:
+  - name: weather-service
+    properties:
+      image: your-registry/weather-service:latest
+      ports:
+      - port: 8080
+        protocol: TCP
+      # Liveness Probe Configuration
+      livenessProbe:
+        httpGet:
+          path: /management/health/liveness
+          port: 8080
+          scheme: HTTP
+        initialDelaySeconds: 60    # Wait 60s after container start
+        periodSeconds: 20          # Check every 20s
+        timeoutSeconds: 5          # 5s timeout per check
+        failureThreshold: 3        # Restart after 3 failures
+      # Readiness Probe Configuration
+      readinessProbe:
+        httpGet:
+          path: /management/health/readiness
+          port: 8080
+          scheme: HTTP
+        initialDelaySeconds: 30    # Check readiness after 30s
+        periodSeconds: 10          # Check every 10s
+        timeoutSeconds: 5          # 5s timeout per check
+        failureThreshold: 3        # Stop traffic after 3 failures
+  osType: Linux
+  restartPolicy: Always
+```
+
+### **Azure Container Apps**
+
+```yaml
+apiVersion: apps/v1alpha1
+kind: ContainerApp
+metadata:
+  name: weather-service
+spec:
+  containers:
+  - name: weather-service
+    image: your-registry/weather-service:latest
+    ports:
+    - containerPort: 8080
+      name: http
+    probes:
+    # Liveness Probe
+    - type: liveness
+      httpGet:
+        path: "/management/health/liveness"
+        port: 8080
+      initialDelaySeconds: 60
+      periodSeconds: 20
+      timeoutSeconds: 5
+      failureThreshold: 3
+    # Readiness Probe
+    - type: readiness
+      httpGet:
+        path: "/management/health/readiness"
+        port: 8080
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
+```
+
+### **Azure Kubernetes Service (AKS)**
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: weather-service
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: weather-service
+  template:
+    metadata:
+      labels:
+        app: weather-service
+    spec:
+      containers:
+      - name: weather-service
+        image: your-registry/weather-service:latest
+        ports:
+        - containerPort: 8080
+        # Startup Probe (recommended for Spring Boot)
+        startupProbe:
+          httpGet:
+            path: /management/health/liveness
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          failureThreshold: 30      # Allow 5 minutes for startup
+        # Liveness Probe
+        livenessProbe:
+          httpGet:
+            path: /management/health/liveness
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3
+        # Readiness Probe
+        readinessProbe:
+          httpGet:
+            path: /management/health/readiness
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 1000m
+            memory: 2Gi
+```
+
+### **Azure App Service (Container)**
+
+```bash
+# Configure health check in Azure App Service
+az webapp config set \
+  --resource-group myResourceGroup \
+  --name weather-service-app \
+  --generic-configurations '{"healthCheckPath": "/management/health"}'
+```
+
+### **⏱️ Recommended Probe Timing for Spring Boot Applications**
+
+| Probe Type | Initial Delay | Period | Timeout | Failure Threshold | Purpose |
+|------------|---------------|--------|---------|-------------------|---------|
+| **Startup** | 15s | 10s | 5s | 30 (5 min total) | Allow Spring Boot startup |
+| **Liveness** | 60s | 20s | 5s | 3 | Detect hung/crashed app |
+| **Readiness** | 30s | 10s | 5s | 3 | Manage traffic routing |
+
+### **🎯 Azure Benefits**
+
+1. **Automatic Scaling**: Azure can scale based on health status
+2. **Load Balancing**: Traffic routes only to healthy instances  
+3. **Rolling Updates**: Zero-downtime deployments with readiness checks
+4. **Monitoring Integration**: Azure Monitor tracks probe failures
+5. **Cost Optimization**: Unhealthy instances don't consume traffic resources
+6. **Multi-region Failover**: Health status drives traffic distribution
+
+### **📊 Monitoring in Azure**
+
+```bash
+# View container health in Azure CLI
+az container show --resource-group myRG --name weather-service --query "containers[0].instanceView.currentState"
+
+# Check AKS pod health
+kubectl get pods -l app=weather-service
+kubectl describe pod <pod-name>
+
+# View Container Apps health
+az containerapp revision list --name weather-service --resource-group myRG
+```
+
+The probes ensure your Weather Service runs reliably in Azure with automatic recovery, intelligent traffic routing, and seamless deployments! 🚀
+
+## Database Access and Inspection
+
+When running with the `local` profile, the application uses an H2 in-memory database. Since this is a **WebFlux (reactive) application**, the traditional H2 web console is not compatible.
+
+### ⚠️ H2 Console Limitation
+**H2 Console does not work with Spring WebFlux** - it requires a servlet-based web stack. Our application uses the reactive web stack for non-blocking operations.
+
+### 🔍 Alternative Ways to Inspect Database
+
+#### **Option 1: Use the Weather API Endpoints (Recommended)**
+```bash
+# Get all cities with weather data
+curl http://localhost:8080/api/v1/weather/cities
+
+# Get latest weather for a specific city
+curl http://localhost:8080/api/v1/weather/city/New%20York/latest
+
+# Get all weather data for a city (paginated)
+curl "http://localhost:8080/api/v1/weather/city/New%20York?page=0&size=10"
+
+# Get weather data by date range
+curl "http://localhost:8080/api/v1/weather/range?start=2024-01-01T00:00:00&end=2024-12-31T23:59:59"
+```
+
+#### **Option 2: Use Swagger UI (Interactive)**
+Navigate to **http://localhost:8080/swagger-ui.html** and use the interactive interface to:
+- View all available endpoints
+- Test API calls with sample data
+- See response formats and schemas
+
+#### **Option 3: External H2 Tools**
+If you need SQL access, you can:
+1. **Stop the application**
+2. **Change to file-based H2** (instead of in-memory) by updating `application-local.yml`:
+   ```yaml
+   spring:
+     r2dbc:
+       url: r2dbc:h2:file:./data/testdb
+     datasource:
+       url: jdbc:h2:file:./data/testdb
    ```
+3. **Use external H2 tools** like DBeaver or IntelliJ IDEA database tools
 
-2. **Try these alternative JDBC URLs** if the default doesn't work:
-   - `jdbc:h2:mem:testdb` (simple format)
-   - `jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE` (with parameters)
-   - Check the application logs for the actual H2 URL being used
+#### **Option 4: Add Debug Endpoints**
+The application includes health endpoints that show database connectivity:
+```bash
+# Check database health
+curl http://localhost:8080/management/health
 
-3. **Verify H2 console is enabled** by checking the logs for:
-   ```
-   H2 console available at '/h2-console'
-   ```
-
-4. **Make sure you're using the correct port**: `8080` (default)
+# Deep health check with database details
+curl http://localhost:8080/management/deephealth
+```
 
 ### Available Tables
 - **`weather_data`**: Main table containing all weather records
@@ -405,7 +680,6 @@ These examples are defined in the DTO annotations and will work seamlessly with 
 |--------|----------|-------------|
 | GET | `/swagger-ui.html` | Swagger UI |
 | GET | `/v3/api-docs` | OpenAPI specification |
-| GET | `/h2-console` | H2 Database Console (local profile only) |
 
 ## Development Workflow
 
