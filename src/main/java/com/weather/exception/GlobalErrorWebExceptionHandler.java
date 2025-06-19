@@ -34,7 +34,7 @@ public class GlobalErrorWebExceptionHandler implements ErrorWebExceptionHandler 
         
         ErrorResponse errorResponse = buildErrorResponse(exchange, ex);
         
-        exchange.getResponse().setStatusCode(HttpStatus.valueOf(errorResponse.getStatus()));
+        exchange.getResponse().setStatusCode(HttpStatus.valueOf(errorResponse.status()));
         exchange.getResponse().getHeaders().add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
         
         try {

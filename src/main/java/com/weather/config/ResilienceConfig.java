@@ -103,11 +103,9 @@ public class ResilienceConfig {
         RateLimiter rateLimiter = rateLimiterRegistry.rateLimiter("weather-service", config);
         
         rateLimiter.getEventPublisher()
-                .onAcquirePermission(event -> 
-                        log.debug("Rate limiter permission acquired for: {}", event.getRateLimiterName()));
-        
-        rateLimiter.getEventPublisher()
-                .onDrillDown(event -> 
+                .onSuccess(event -> 
+                        log.debug("Rate limiter permission acquired for: {}", event.getRateLimiterName()))
+                .onFailure(event -> 
                         log.warn("Rate limiter permission rejected for: {}", event.getRateLimiterName()));
         
         return rateLimiter;

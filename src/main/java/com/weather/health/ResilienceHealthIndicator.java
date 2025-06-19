@@ -66,13 +66,10 @@ public class ResilienceHealthIndicator implements ReactiveHealthIndicator {
                         retryMetrics.getNumberOfFailedCallsWithRetryAttempt())
                 .build());
         
-        // Time Limiter status
-        TimeLimiter.Metrics timeLimiterMetrics = weatherServiceTimeLimiter.getMetrics();
-        
+        // Time Limiter status (metrics not available in this version)
         builder.withDetail("timeLimiter", Health.up()
-                .withDetail("numberOfSuccessfulCalls", timeLimiterMetrics.getNumberOfSuccessfulCalls())
-                .withDetail("numberOfFailedCalls", timeLimiterMetrics.getNumberOfFailedCalls())
-                .withDetail("numberOfTimeoutCalls", timeLimiterMetrics.getNumberOfTimeoutCalls())
+                .withDetail("name", weatherServiceTimeLimiter.getName())
+                .withDetail("status", "configured")
                 .build());
         
         builder.withDetail("timestamp", LocalDateTime.now());

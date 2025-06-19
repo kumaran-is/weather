@@ -37,13 +37,13 @@ public class WeatherDataServiceImpl implements WeatherDataService {
     @TimeLimiter(name = "weather-service")
     @Transactional
     public Mono<WeatherDataResponse> createWeatherData(WeatherDataRequest request) {
-        log.debug("Creating weather data for city: {}", request.getCity());
+        log.debug("Creating weather data for city: {}", request.city());
         
         return validateRequest(request)
                 .then(Mono.fromCallable(() -> mapper.toEntity(request)))
                 .flatMap(repository::save)
                 .map(mapper::toResponse)
-                .doOnSuccess(response -> log.info("Created weather data with id: {}", response.getId()))
+                .doOnSuccess(response -> log.info("Created weather data with id: {}", response.id()))
                 .onErrorMap(this::mapToServiceException);
     }
     
@@ -57,7 +57,7 @@ public class WeatherDataServiceImpl implements WeatherDataService {
         return repository.findById(id)
                 .switchIfEmpty(Mono.error(new WeatherNotFoundException(id)))
                 .map(mapper::toResponse)
-                .doOnSuccess(response -> log.debug("Found weather data: {}", response.getId()))
+                .doOnSuccess(response -> log.debug("Found weather data: {}", response.id()))
                 .onErrorMap(this::mapToServiceException);
     }
     
@@ -77,7 +77,7 @@ public class WeatherDataServiceImpl implements WeatherDataService {
                 repository.countByCity(city)
         ).map(tuple -> buildPageResponse(tuple.getT1(), page, size, tuple.getT2()))
                 .doOnSuccess(response -> log.debug("Found {} weather records for city: {}", 
-                        response.getNumberOfElements(), city))
+                        response.numberOfElements(), city))
                 .onErrorMap(this::mapToServiceException);
     }
     
@@ -114,7 +114,7 @@ public class WeatherDataServiceImpl implements WeatherDataService {
                 }))
                 .map(tuple -> buildPageResponse(tuple.getT1(), page, size, tuple.getT2()))
                 .doOnSuccess(response -> log.debug("Found {} weather records for date range", 
-                        response.getNumberOfElements()))
+                        response.numberOfElements()))
                 .onErrorMap(this::mapToServiceException);
     }
     
@@ -138,7 +138,7 @@ public class WeatherDataServiceImpl implements WeatherDataService {
                 }))
                 .map(tuple -> buildPageResponse(tuple.getT1(), page, size, tuple.getT2()))
                 .doOnSuccess(response -> log.debug("Found {} weather records for city: {} and date range", 
-                        response.getNumberOfElements(), city))
+                        response.numberOfElements(), city))
                 .onErrorMap(this::mapToServiceException);
     }
     
@@ -156,7 +156,7 @@ public class WeatherDataServiceImpl implements WeatherDataService {
                 .doOnNext(existing -> mapper.updateEntityFromRequest(request, existing))
                 .flatMap(repository::save)
                 .map(mapper::toResponse)
-                .doOnSuccess(response -> log.info("Updated weather data with id: {}", response.getId()))
+                .doOnSuccess(response -> log.info("Updated weather data with id: {}", response.id()))
                 .onErrorMap(this::mapToServiceException);
     }
     
@@ -188,7 +188,7 @@ public class WeatherDataServiceImpl implements WeatherDataService {
     }
     
     private Mono<Void> validateRequest(WeatherDataRequest request) {
-        if (request.getRecordedAt().isAfter(LocalDateTime.now())) {
+        if (request.recordedAt().isAfter(LocalDateTime.now())) {
             return Mono.error(new WeatherValidationException("Recorded time cannot be in the future"));
         }
         return Mono.empty();

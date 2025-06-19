@@ -32,9 +32,11 @@ public class DeepHealthController {
                         indicator -> indicator.health().block() // Note: blocking for simplicity in this endpoint
                 )))
                 .map(healthMap -> {
-                    healthMap.put("timestamp", LocalDateTime.now());
-                    healthMap.put("overallStatus", determineOverallHealth(healthMap));
-                    return healthMap;
+                    return Map.<String, Object>of(
+                        "timestamp", LocalDateTime.now(),
+                        "overallStatus", determineOverallHealth(healthMap),
+                        "components", healthMap
+                    );
                 })
                 .doOnSuccess(result -> log.info("Deep health check completed"))
                 .onErrorResume(throwable -> {
@@ -47,10 +49,8 @@ public class DeepHealthController {
                 });
     }
     
-    private String determineOverallHealth(Map<String, Object> healthMap) {
+    private String determineOverallHealth(Map<String, Health> healthMap) {
         boolean allUp = healthMap.values().stream()
-                .filter(Health.class::isInstance)
-                .map(Health.class::cast)
                 .allMatch(health -> health.getStatus().getCode().equals("UP"));
         
         return allUp ? "UP" : "DOWN";

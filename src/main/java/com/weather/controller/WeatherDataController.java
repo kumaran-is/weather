@@ -48,7 +48,7 @@ public class WeatherDataController {
     })
     public Mono<WeatherDataResponse> createWeatherData(
             @Valid @RequestBody WeatherDataRequest request) {
-        log.info("Creating weather data for city: {}", request.getCity());
+        log.info("Creating weather data for city: {}", request.city());
         return weatherDataService.createWeatherData(request);
     }
     
