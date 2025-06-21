@@ -1476,15 +1476,15 @@ sequenceDiagram
     participant Database as H2Database
     participant Fallback as FallbackMethod
 
-    Client->>+Controller: POST /api/v1/weather
-    Controller->>+Filter: enrichContext()
+    Client->>Controller: POST /api/v1/weather
+    Controller->>Filter: enrichContext()
     Filter->>Filter: Generate correlationId
     Filter->>Filter: Add requestTiming
     Filter->>Filter: Add userContext
-    Filter-->>-Controller: Context enriched
+    Filter-->>Controller: Context enriched
     
-    Controller->>+Metrics: timed() - Start metrics
-    Controller->>+Service: createWeatherData(request)
+    Controller->>Metrics: timed() - Start metrics
+    Controller->>Service: createWeatherData(request)
     
     Note over TL,BH: Resilience Pattern Stack (Annotation Order)
     Service->>TL: @TimeLimiter(name="createWeatherDataDb")
@@ -1507,10 +1507,10 @@ sequenceDiagram
             BH->>Service: Execute business logic
             Service->>Service: validateRequest()
             Service->>Service: mapper.toEntity()
-            Service->>+Repository: save(entity)
-            Repository->>+Database: INSERT INTO weather_data
-            Database-->>-Repository: Success
-            Repository-->>-Service: WeatherData entity
+            Service->>Repository: save(entity)
+            Repository->>Database: INSERT INTO weather_data
+            Database-->>Repository: Success
+            Repository-->>Service: WeatherData entity
             Service->>Service: mapper.toResponse()
             Service->>Service: log.info() with correlationId
             Service-->>BH: WeatherDataResponse
@@ -1522,9 +1522,9 @@ sequenceDiagram
         end
         
     else Circuit Breaker OPEN
-        CB->>+Fallback: createWeatherDataFallback()
+        CB->>Fallback: createWeatherDataFallback()
         Fallback->>Fallback: log.error("Circuit breaker activated")
-        Fallback-->>-CB: WeatherServiceException
+        Fallback-->>CB: WeatherServiceException
     end
     
     alt Retry needed (on failure)
@@ -1534,10 +1534,10 @@ sequenceDiagram
         Note over CB,Database: Repeat circuit breaker → bulkhead → database flow
     end
     
-    Service-->>-Controller: WeatherDataResponse
-    Controller-->>-Metrics: timed() - End metrics
+    Service-->>Controller: WeatherDataResponse
+    Controller-->>Metrics: timed() - End metrics
     Metrics->>Metrics: Record operation.timer
-    Controller-->>-Client: 201 Created + Response
+    Controller-->>Client: 201 Created + Response
 ```
 
 #### **Health Check Aggregation Flow**
