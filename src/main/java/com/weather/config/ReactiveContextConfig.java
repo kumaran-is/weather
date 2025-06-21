@@ -1,6 +1,7 @@
 package com.weather.config;
 
-import lombok.extern.slf4j.Slf4j;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import reactor.core.publisher.Hooks;
@@ -13,9 +14,10 @@ import java.util.UUID;
  * Configuration for reactive context propagation including tracing, security, and correlation IDs.
  * Enables proper context handling across reactive streams for cross-cutting concerns.
  */
-@Slf4j
 @Configuration
 public class ReactiveContextConfig {
+    
+    private static final Logger log = LogManager.getLogger(ReactiveContextConfig.class);
     
     public static final String CORRELATION_ID_KEY = "correlationId";
     public static final String REQUEST_START_TIME_KEY = "requestStartTime";

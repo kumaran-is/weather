@@ -4,8 +4,8 @@ import org.springframework.boot.info.BuildProperties;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Component that logs application build information during startup.
@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 @Component
 public class ApplicationStartupVersionLogger {
 
-    private static final Logger logger = LoggerFactory.getLogger(ApplicationStartupVersionLogger.class);
+    private static final Logger logger = LogManager.getLogger(ApplicationStartupVersionLogger.class);
 
     private final BuildProperties buildProperties;
 

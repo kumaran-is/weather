@@ -17,7 +17,8 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -27,12 +28,13 @@ import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
 
-@Slf4j
 @RestController
 @RequestMapping("/api/v1/weather")
 @RequiredArgsConstructor
 @Tag(name = "Weather Data", description = "Weather data management API")
 public class WeatherDataController {
+    
+    private static final Logger log = LogManager.getLogger(WeatherDataController.class);
     
     private final WeatherDataService weatherDataService;
     

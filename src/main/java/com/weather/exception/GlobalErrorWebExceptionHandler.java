@@ -1,7 +1,8 @@
 package com.weather.exception;
 
 import com.weather.dto.ErrorResponse;
-import lombok.extern.slf4j.Slf4j;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.boot.web.reactive.error.ErrorWebExceptionHandler;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.io.buffer.DataBuffer;
@@ -17,10 +18,11 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Slf4j
 @Component
 @Order(-2)
 public class GlobalErrorWebExceptionHandler implements ErrorWebExceptionHandler {
+    
+    private static final Logger log = LogManager.getLogger(GlobalErrorWebExceptionHandler.class);
     
     private final ObjectMapper objectMapper;
     

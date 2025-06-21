@@ -1,6 +1,7 @@
 package com.weather.health;
 
-import lombok.extern.slf4j.Slf4j;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.Status;
 import org.springframework.context.ApplicationContext;
@@ -11,9 +12,10 @@ import reactor.core.publisher.Mono;
 import java.util.AbstractMap;
 import java.util.Map;
 
-@Slf4j
 @Component
 public class HealthIndicatorAggregator {
+    
+    private static final Logger log = LogManager.getLogger(HealthIndicatorAggregator.class);
 
     private final ApplicationContext applicationContext;
 

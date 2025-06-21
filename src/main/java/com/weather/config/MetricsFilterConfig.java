@@ -3,7 +3,8 @@ package com.weather.config;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.config.MeterFilter;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.boot.actuate.autoconfigure.metrics.MeterRegistryCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,10 +13,11 @@ import org.springframework.context.annotation.Configuration;
  * Configuration to filter out management endpoint metrics from built-in Spring metrics.
  * Only includes configurable business API endpoints in http.server.requests metrics.
  */
-@Slf4j
 @Configuration
 @RequiredArgsConstructor
 public class MetricsFilterConfig {
+    
+    private static final Logger log = LogManager.getLogger(MetricsFilterConfig.class);
     
     private final MetricsProperties metricsProperties;
 

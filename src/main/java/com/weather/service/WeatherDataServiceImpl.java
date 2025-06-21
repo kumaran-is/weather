@@ -14,7 +14,8 @@ import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
@@ -27,10 +28,11 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.SequencedCollection;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class WeatherDataServiceImpl implements WeatherDataService {
+    
+    private static final Logger log = LogManager.getLogger(WeatherDataServiceImpl.class);
     
     private static final String CREATE_WEATHER_DB = "createWeatherDataDb";
     private static final String GET_WEATHER_DB = "getWeatherDataDb";

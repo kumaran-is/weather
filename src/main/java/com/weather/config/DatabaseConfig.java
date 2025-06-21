@@ -2,7 +2,8 @@ package com.weather.config;
 
 import io.r2dbc.spi.ConnectionFactories;
 import io.r2dbc.spi.ConnectionFactory;
-import lombok.extern.slf4j.Slf4j;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,9 +12,10 @@ import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
 import org.springframework.r2dbc.connection.init.ConnectionFactoryInitializer;
 import org.springframework.r2dbc.connection.init.ResourceDatabasePopulator;
 
-@Slf4j
 @Configuration
 public class DatabaseConfig extends AbstractR2dbcConfiguration {
+    
+    private static final Logger log = LogManager.getLogger(DatabaseConfig.class);
     
     @Value("${spring.r2dbc.url}")
     private String r2dbcUrl;

@@ -1,7 +1,8 @@
 package com.weather.config;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilter;
@@ -13,10 +14,11 @@ import reactor.util.context.Context;
  * Web filter that automatically adds context propagation to all reactive requests.
  * Ensures correlation IDs, timing, and user context flow through reactive chains.
  */
-@Slf4j
 @Component
 @RequiredArgsConstructor
 public class ReactiveContextWebFilter implements WebFilter {
+    
+    private static final Logger log = LogManager.getLogger(ReactiveContextWebFilter.class);
     
     private final ReactiveContextConfig.ReactiveContextPropagation contextPropagation;
     private final ReactiveMetricsConfig.ReactiveMetricsCollector metricsCollector;

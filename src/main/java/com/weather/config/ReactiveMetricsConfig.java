@@ -4,7 +4,8 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
 import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import reactor.core.publisher.Flux;
@@ -18,10 +19,11 @@ import java.util.concurrent.atomic.AtomicLong;
  * Configuration for reactive stream metrics and monitoring.
  * Provides custom metrics for reactive patterns like subscription rates, backpressure, and memory usage.
  */
-@Slf4j
 @Configuration
 @RequiredArgsConstructor
 public class ReactiveMetricsConfig {
+    
+    private static final Logger log = LogManager.getLogger(ReactiveMetricsConfig.class);
     
     private final MeterRegistry meterRegistry;
     

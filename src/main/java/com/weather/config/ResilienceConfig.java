@@ -12,7 +12,8 @@ import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryRegistry;
 import io.github.resilience4j.timelimiter.TimeLimiter;
 import io.github.resilience4j.timelimiter.TimeLimiterRegistry;
-import lombok.extern.slf4j.Slf4j;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -22,8 +23,9 @@ import org.springframework.context.annotation.Configuration;
  * This class only handles registration and event listening for weather service operations.
  */
 @Configuration
-@Slf4j
 public class ResilienceConfig {
+    
+    private static final Logger log = LogManager.getLogger(ResilienceConfig.class);
 
     private void attachCircuitBreakerListeners(CircuitBreaker circuitBreaker) {
         circuitBreaker.getEventPublisher()
