@@ -28,11 +28,14 @@ public class ApplicationStartupVersionLogger {
         if (event.getApplicationContext().getParent() == null) {
             if (buildProperties != null) {
                 logger.info("========================================================================");
-                logger.info("Application Name    : {}", buildProperties.getName());
-                logger.info("Application Version : {}", buildProperties.getVersion());
-                logger.info("Build Time          : {}", buildProperties.getTime());
-                logger.info("Artifact ID         : {}", buildProperties.getArtifact());
-                logger.info("Group ID            : {}", buildProperties.getGroup());
+                logger.info("Application Name     : {}", buildProperties.getName());
+                logger.info("Application Version  : {}", buildProperties.getVersion());
+                logger.info("Build Time           : {}", buildProperties.getTime());
+                logger.info("Artifact ID          : {}", buildProperties.getArtifact());
+                logger.info("Group ID             : {}", buildProperties.getGroup());
+                logger.info("Java Version         : {}", buildProperties.get("java.source"));
+                logger.info("Spring Boot Version  : {}", buildProperties.get("spring-boot.version"));
+                logger.info("Spring Framework Ver : {}", buildProperties.get("spring-framework.version"));
                 logger.info("========================================================================");
             } else {
                 logger.warn("BuildProperties not available. Ensure spring-boot-maven-plugin's build-info goal is executed.");

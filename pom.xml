@@ -175,6 +175,8 @@
                                 <encoding.reporting>${project.reporting.outputEncoding}</encoding.reporting>
                                 <java.source>${java.version}</java.source>
                                 <java.target>${java.version}</java.target>
+                                <spring-boot.version>${project.parent.version}</spring-boot.version>
+                                <spring-framework.version>${spring-framework.version}</spring-framework.version>
                             </additionalProperties>
                         </configuration>
                     </execution>
