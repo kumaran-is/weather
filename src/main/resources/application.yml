@@ -9,6 +9,15 @@ spring:
       write-dates-as-timestamps: false
     deserialization:
       fail-on-unknown-properties: false
+  r2dbc:
+    url: r2dbc:h2:mem:///weatherdb?DB_CLOSE_DELAY=-1&DB_CLOSE_ON_EXIT=FALSE
+    username: weather_user
+    password: weather_pass
+    pool:
+      initial-size: 5
+      max-size: 20
+      max-idle-time: 30m
+      validation-query: SELECT 1
 
 server:
   port: ${SERVER_PORT:8080}
@@ -32,6 +41,16 @@ management:
       enabled: true
     readinessstate:
       enabled: true
+    circuitbreakers:
+      enabled: true
+    ratelimiters:
+      enabled: true
+    retries:
+      enabled: true
+    timelimiters:
+      enabled: true
+    bulkheads:
+      enabled: true
   info:
     build:
       enabled: true
@@ -54,42 +73,151 @@ springdoc:
   show-actuator: false
   override-with-generic-response: false
 
-# Global Resilience4j Configuration
+# ===================================================================
+# Resilience4j Global Configuration (Defaults)
+# These can be overridden per instance for specific database operations.
+# ===================================================================
 resilience4j:
   circuitbreaker:
     configs:
       default:
-        sliding-window-size: 10
-        sliding-window-type: count_based
-        minimum-number-of-calls: 5
-        failure-rate-threshold: 50.0
-        wait-duration-in-open-state: 10s
-        permitted-number-of-calls-in-half-open-state: 3
-        max-wait-duration-in-half-open-state: 5s
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 100
+        minimum-number-of-calls: 20
+        failure-rate-threshold: 50
+        slow-call-rate-threshold: 100
+        slow-call-duration-threshold: 5s
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 10
         automatic-transition-from-open-to-half-open-enabled: true
-        record-exceptions:
-          - org.springframework.dao.DataAccessException
-          - java.sql.SQLException
-          - java.io.IOException
+        register-health-indicator: true
+    instances:
+      getWeatherDataDb:
+        baseConfig: default
+      createWeatherDataDb:
+        baseConfig: default
+      updateWeatherDataDb:
+        baseConfig: default
+      deleteWeatherDataDb:
+        baseConfig: default
+      getAllCitiesDb:
+        baseConfig: default
+      getWeatherByCityDb:
+        baseConfig: default
+      getLatestWeatherDb:
+        baseConfig: default
+      getWeatherByDateRangeDb:
+        baseConfig: default
   retry:
     configs:
       default:
         max-attempts: 3
-        wait-duration: 1s
+        wait-duration: 500ms
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        exponential-max-wait-duration: 5s
+        enable-random-jitter: true
         retry-exceptions:
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
           - org.springframework.dao.DataAccessException
           - java.sql.SQLException
+          - org.springframework.r2dbc.BadSqlGrammarException
+        ignore-exceptions:
+          - com.weather.exception.WeatherValidationException
+          - com.weather.exception.WeatherNotFoundException
+        register-health-indicator: true
+    instances:
+      getWeatherDataDb:
+        baseConfig: default
+      createWeatherDataDb:
+        baseConfig: default
+      updateWeatherDataDb:
+        baseConfig: default
+      deleteWeatherDataDb:
+        baseConfig: default
+      getAllCitiesDb:
+        baseConfig: default
+      getWeatherByCityDb:
+        baseConfig: default
+      getLatestWeatherDb:
+        baseConfig: default
+      getWeatherByDateRangeDb:
+        baseConfig: default
   ratelimiter:
     configs:
       default:
         limit-for-period: 100
         limit-refresh-period: 1s
         timeout-duration: 1s
+        register-health-indicator: true
+    instances:
+      getWeatherDataDb:
+        baseConfig: default
+      createWeatherDataDb:
+        baseConfig: default
+        limit-for-period: 50
+      updateWeatherDataDb:
+        baseConfig: default
+        limit-for-period: 50
+      deleteWeatherDataDb:
+        baseConfig: default
+        limit-for-period: 25
   timelimiter:
     configs:
       default:
         timeout-duration: 3s
         cancel-running-future: true
+        register-health-indicator: true
+    instances:
+      getWeatherDataDb:
+        baseConfig: default
+      createWeatherDataDb:
+        baseConfig: default
+        timeout-duration: 5s
+      updateWeatherDataDb:
+        baseConfig: default
+        timeout-duration: 5s
+      deleteWeatherDataDb:
+        baseConfig: default
+      getAllCitiesDb:
+        baseConfig: default
+        timeout-duration: 2s
+      getWeatherByCityDb:
+        baseConfig: default
+      getLatestWeatherDb:
+        baseConfig: default
+      getWeatherByDateRangeDb:
+        baseConfig: default
+        timeout-duration: 10s
+  bulkhead:
+    configs:
+      default:
+        max-concurrent-calls: 25
+        max-wait-duration: 0ms
+        register-health-indicator: true
+    instances:
+      getWeatherDataDb:
+        baseConfig: default
+      createWeatherDataDb:
+        baseConfig: default
+        max-concurrent-calls: 15
+      updateWeatherDataDb:
+        baseConfig: default
+        max-concurrent-calls: 15
+      deleteWeatherDataDb:
+        baseConfig: default
+        max-concurrent-calls: 10
+      getAllCitiesDb:
+        baseConfig: default
+        max-concurrent-calls: 30
+      getWeatherByCityDb:
+        baseConfig: default
+      getLatestWeatherDb:
+        baseConfig: default
+      getWeatherByDateRangeDb:
+        baseConfig: default
+        max-concurrent-calls: 20
 
 # Logging configuration
 logging:

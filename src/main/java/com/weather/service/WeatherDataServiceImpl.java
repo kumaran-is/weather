@@ -9,6 +9,7 @@ import com.weather.exception.WeatherValidationException;
 import com.weather.mapper.WeatherDataMapper;
 import com.weather.repository.WeatherDataRepository;
 
+import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
@@ -31,13 +32,23 @@ import java.util.SequencedCollection;
 @RequiredArgsConstructor
 public class WeatherDataServiceImpl implements WeatherDataService {
     
+    private static final String CREATE_WEATHER_DB = "createWeatherDataDb";
+    private static final String GET_WEATHER_DB = "getWeatherDataDb";
+    private static final String UPDATE_WEATHER_DB = "updateWeatherDataDb";
+    private static final String DELETE_WEATHER_DB = "deleteWeatherDataDb";
+    private static final String GET_ALL_CITIES_DB = "getAllCitiesDb";
+    private static final String GET_WEATHER_BY_CITY_DB = "getWeatherByCityDb";
+    private static final String GET_LATEST_WEATHER_DB = "getLatestWeatherDb";
+    private static final String GET_WEATHER_BY_DATE_RANGE_DB = "getWeatherByDateRangeDb";
+    
     private final WeatherDataRepository repository;
     private final WeatherDataMapper mapper;
     
     @Override
-    @CircuitBreaker(name = "weather-service", fallbackMethod = "createWeatherDataFallback")
-    @Retry(name = "weather-service")
-    @TimeLimiter(name = "weather-service")
+    @TimeLimiter(name = CREATE_WEATHER_DB)
+    @Retry(name = CREATE_WEATHER_DB)
+    @CircuitBreaker(name = CREATE_WEATHER_DB, fallbackMethod = "createWeatherDataFallback")
+    @Bulkhead(name = CREATE_WEATHER_DB)
     @Transactional
     public Mono<WeatherDataResponse> createWeatherData(WeatherDataRequest request) {
         return validateRequest(request)
@@ -56,9 +67,10 @@ public class WeatherDataServiceImpl implements WeatherDataService {
     }
     
     @Override
-    @CircuitBreaker(name = "weather-service", fallbackMethod = "getWeatherDataByIdFallback")
-    @Retry(name = "weather-service")
-    @TimeLimiter(name = "weather-service")
+    @TimeLimiter(name = GET_WEATHER_DB)
+    @Retry(name = GET_WEATHER_DB)
+    @CircuitBreaker(name = GET_WEATHER_DB, fallbackMethod = "getWeatherDataByIdFallback")
+    @Bulkhead(name = GET_WEATHER_DB)
     public Mono<WeatherDataResponse> getWeatherDataById(Long id) {
         log.debug("Fetching weather data by id: {}", id);
         
@@ -70,9 +82,10 @@ public class WeatherDataServiceImpl implements WeatherDataService {
     }
     
     @Override
-    @CircuitBreaker(name = "weather-service", fallbackMethod = "getWeatherDataByCityFallback")
-    @Retry(name = "weather-service")
-    @TimeLimiter(name = "weather-service")
+    @TimeLimiter(name = GET_WEATHER_BY_CITY_DB)
+    @Retry(name = GET_WEATHER_BY_CITY_DB)
+    @CircuitBreaker(name = GET_WEATHER_BY_CITY_DB, fallbackMethod = "getWeatherDataByCityFallback")
+    @Bulkhead(name = GET_WEATHER_BY_CITY_DB)
     public Mono<PageResponse<WeatherDataResponse>> getWeatherDataByCity(String city, int page, int size) {
         log.debug("Fetching weather data for city: {}, page: {}, size: {}", city, page, size);
         
@@ -90,9 +103,10 @@ public class WeatherDataServiceImpl implements WeatherDataService {
     }
     
     @Override
-    @CircuitBreaker(name = "weather-service", fallbackMethod = "getLatestWeatherDataByCityFallback")
-    @Retry(name = "weather-service")
-    @TimeLimiter(name = "weather-service")
+    @TimeLimiter(name = GET_LATEST_WEATHER_DB)
+    @Retry(name = GET_LATEST_WEATHER_DB)
+    @CircuitBreaker(name = GET_LATEST_WEATHER_DB, fallbackMethod = "getLatestWeatherDataByCityFallback")
+    @Bulkhead(name = GET_LATEST_WEATHER_DB)
     public Mono<WeatherDataResponse> getLatestWeatherDataByCity(String city) {
         log.debug("Fetching latest weather data for city: {}", city);
         
@@ -104,9 +118,10 @@ public class WeatherDataServiceImpl implements WeatherDataService {
     }
     
     @Override
-    @CircuitBreaker(name = "weather-service", fallbackMethod = "getWeatherDataByDateRangeFallback")
-    @Retry(name = "weather-service")
-    @TimeLimiter(name = "weather-service")
+    @TimeLimiter(name = GET_WEATHER_BY_DATE_RANGE_DB)
+    @Retry(name = GET_WEATHER_BY_DATE_RANGE_DB)
+    @CircuitBreaker(name = GET_WEATHER_BY_DATE_RANGE_DB, fallbackMethod = "getWeatherDataByDateRangeFallback")
+    @Bulkhead(name = GET_WEATHER_BY_DATE_RANGE_DB)
     public Mono<PageResponse<WeatherDataResponse>> getWeatherDataByDateRange(LocalDateTime start, LocalDateTime end, int page, int size) {
         log.debug("Fetching weather data for date range: {} to {}, page: {}, size: {}", start, end, page, size);
         
@@ -127,9 +142,10 @@ public class WeatherDataServiceImpl implements WeatherDataService {
     }
     
     @Override
-    @CircuitBreaker(name = "weather-service", fallbackMethod = "getWeatherDataByCityAndDateRangeFallback")
-    @Retry(name = "weather-service")
-    @TimeLimiter(name = "weather-service")
+    @TimeLimiter(name = GET_WEATHER_BY_DATE_RANGE_DB)
+    @Retry(name = GET_WEATHER_BY_DATE_RANGE_DB)
+    @CircuitBreaker(name = GET_WEATHER_BY_DATE_RANGE_DB, fallbackMethod = "getWeatherDataByCityAndDateRangeFallback")
+    @Bulkhead(name = GET_WEATHER_BY_DATE_RANGE_DB)
     public Mono<PageResponse<WeatherDataResponse>> getWeatherDataByCityAndDateRange(String city, LocalDateTime start, LocalDateTime end, int page, int size) {
         log.debug("Fetching weather data for city: {} and date range: {} to {}, page: {}, size: {}", 
                 city, start, end, page, size);
@@ -151,9 +167,10 @@ public class WeatherDataServiceImpl implements WeatherDataService {
     }
     
     @Override
-    @CircuitBreaker(name = "weather-service", fallbackMethod = "updateWeatherDataFallback")
-    @Retry(name = "weather-service")
-    @TimeLimiter(name = "weather-service")
+    @TimeLimiter(name = UPDATE_WEATHER_DB)
+    @Retry(name = UPDATE_WEATHER_DB)
+    @CircuitBreaker(name = UPDATE_WEATHER_DB, fallbackMethod = "updateWeatherDataFallback")
+    @Bulkhead(name = UPDATE_WEATHER_DB)
     @Transactional
     public Mono<WeatherDataResponse> updateWeatherData(Long id, WeatherDataRequest request) {
         log.debug("Updating weather data with id: {}", id);
@@ -169,9 +186,10 @@ public class WeatherDataServiceImpl implements WeatherDataService {
     }
     
     @Override
-    @CircuitBreaker(name = "weather-service", fallbackMethod = "deleteWeatherDataFallback")
-    @Retry(name = "weather-service")
-    @TimeLimiter(name = "weather-service")
+    @TimeLimiter(name = DELETE_WEATHER_DB)
+    @Retry(name = DELETE_WEATHER_DB)
+    @CircuitBreaker(name = DELETE_WEATHER_DB, fallbackMethod = "deleteWeatherDataFallback")
+    @Bulkhead(name = DELETE_WEATHER_DB)
     @Transactional
     public Mono<Void> deleteWeatherData(Long id) {
         log.debug("Deleting weather data with id: {}", id);
@@ -184,9 +202,10 @@ public class WeatherDataServiceImpl implements WeatherDataService {
     }
     
     @Override
-    @CircuitBreaker(name = "weather-service", fallbackMethod = "getAllCitiesFallback")
-    @Retry(name = "weather-service")
-    @TimeLimiter(name = "weather-service")
+    @TimeLimiter(name = GET_ALL_CITIES_DB)
+    @Retry(name = GET_ALL_CITIES_DB)
+    @CircuitBreaker(name = GET_ALL_CITIES_DB, fallbackMethod = "getAllCitiesFallback")
+    @Bulkhead(name = GET_ALL_CITIES_DB)
     public Flux<String> getAllCities() {
         // Cache cities list for 5 minutes to avoid re-subscribing to cold publisher
         // Cities don't change frequently, making this an ideal candidate for caching

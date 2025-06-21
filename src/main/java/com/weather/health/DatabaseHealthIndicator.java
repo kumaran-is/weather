@@ -1,59 +1,71 @@
 package com.weather.health;
 
-import com.weather.repository.WeatherDataRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import io.r2dbc.spi.ConnectionFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.actuate.health.AbstractReactiveHealthIndicator;
 import org.springframework.boot.actuate.health.Health;
-import org.springframework.boot.actuate.health.ReactiveHealthIndicator;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
-import java.time.Duration;
-import java.time.LocalDateTime;
+@Component("databaseHealthIndicator")
+@ConditionalOnProperty(
+    name = "health.db.enabled",
+    havingValue = "true",
+    matchIfMissing = true
+)
+public class DatabaseHealthIndicator extends AbstractReactiveHealthIndicator implements com.weather.health.ReactiveHealthIndicator {
 
-@Slf4j
-@Component
-@RequiredArgsConstructor
-public class DatabaseHealthIndicator implements ReactiveHealthIndicator {
-    
-    private final WeatherDataRepository weatherDataRepository;
-    
+    private final R2dbcEntityTemplate r2dbcEntityTemplate;
+    private final String defaultValidationQuery = "SELECT 1"; // Common validation query
+
+    @Autowired
+    public DatabaseHealthIndicator(ConnectionFactory connectionFactory) {
+        if (connectionFactory == null) {
+            throw new IllegalArgumentException("ConnectionFactory must not be null");
+        }
+        // Using R2dbcEntityTemplate for a more common way to interact with the DB
+        this.r2dbcEntityTemplate = new R2dbcEntityTemplate(connectionFactory);
+    }
+
     @Override
-    public Mono<Health> health() {
-        return checkDatabaseHealth()
-                .timeout(Duration.ofSeconds(5))
-                .onErrorResume(this::handleError);
+    protected Mono<Health> doHealthCheck(Health.Builder builder) {
+        return r2dbcEntityTemplate.getDatabaseClient()
+            .sql(defaultValidationQuery)
+            .fetch()
+            .first() // We only care that the query executes, not the result
+            .hasElement()
+            .map(hasElement -> {
+                if (hasElement) {
+                    return Health.up()
+                        .withDetail("database", "H2")
+                        .withDetail("validationQuery", defaultValidationQuery)
+                        .withDetail("status", "Connection successful")
+                        .build();
+                } else {
+                    return Health.down()
+                        .withDetail("validationQuery", "Returned no element")
+                        .withDetail("database", "H2")
+                        .build();
+                }
+            })
+            .onErrorResume(ex ->
+                Mono.just(
+                    Health.down(ex)
+                        .withDetail("error", ex.getClass().getName() + ": " + ex.getMessage())
+                        .withDetail("validationQuery", defaultValidationQuery)
+                        .withDetail("database", "H2")
+                        .build()
+                )
+            );
     }
-    
-    private Mono<Health> checkDatabaseHealth() {
-        LocalDateTime startTime = LocalDateTime.now();
-        
-        return weatherDataRepository.count()
-                .map(count -> {
-                    LocalDateTime endTime = LocalDateTime.now();
-                    Duration responseTime = Duration.between(startTime, endTime);
-                    
-                    Health.Builder builder = Health.up()
-                            .withDetail("database", "R2DBC")
-                            .withDetail("totalRecords", count)
-                            .withDetail("responseTime", responseTime.toMillis() + "ms")
-                            .withDetail("timestamp", LocalDateTime.now());
-                    
-                    if (responseTime.toMillis() > 1000) {
-                        builder.withDetail("warning", "Database response time is slow");
-                    }
-                    
-                    return builder.build();
-                });
-    }
-    
-    private Mono<Health> handleError(Throwable throwable) {
-        log.error("Database health check failed", throwable);
-        
-        return Mono.just(Health.down()
-                .withDetail("database", "R2DBC")
-                .withDetail("error", throwable.getMessage())
-                .withDetail("timestamp", LocalDateTime.now())
-                .build());
+
+    // The health() method is inherited from AbstractReactiveHealthIndicator
+    // and calls doHealthCheck(Health.Builder)
+
+    @Override
+    public String getName() {
+        return "database";
     }
 }
