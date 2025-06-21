@@ -1457,6 +1457,316 @@ For comprehensive implementation details, see our dedicated documentation:
 
 This comprehensive resilience and health monitoring implementation ensures your Weather Service operates reliably under all conditions while providing complete operational visibility. 🛡️💚
 
+### 📊 **System Architecture & Request Flow**
+
+#### **Complete Request Flow with Resilience Patterns**
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Controller as WeatherDataController
+    participant Filter as ReactiveContextWebFilter
+    participant Metrics as ReactiveMetricsCollector
+    participant TL as TimeLimiter
+    participant RT as Retry
+    participant CB as CircuitBreaker
+    participant BH as Bulkhead
+    participant Service as WeatherDataServiceImpl
+    participant Repository as WeatherDataRepository
+    participant Database as H2 Database
+    participant Fallback as FallbackMethod
+
+    Client->>+Controller: POST /api/v1/weather
+    Controller->>+Filter: enrichContext()
+    Filter->>Filter: Generate correlationId
+    Filter->>Filter: Add requestTiming
+    Filter->>Filter: Add userContext
+    Filter->>-Controller: Context enriched
+    
+    Controller->>+Metrics: timed() - Start metrics
+    Controller->>+Service: createWeatherData(request)
+    
+    Note over TL,BH: Resilience Pattern Stack (Annotation Order)
+    Service->>+TL: @TimeLimiter(name="createWeatherDataDb")
+    TL->>TL: Check timeout (5s max)
+    TL->>+RT: Proceed if within time limit
+    
+    RT->>+RT: @Retry(name="createWeatherDataDb")
+    RT->>RT: Attempt 1/3 with jitter
+    RT->>+CB: Proceed to circuit breaker
+    
+    CB->>+CB: @CircuitBreaker(name="createWeatherDataDb")
+    CB->>CB: Check state: CLOSED/OPEN/HALF_OPEN
+    
+    alt Circuit Breaker CLOSED
+        CB->>+BH: Proceed to bulkhead
+        BH->>+BH: @Bulkhead(name="createWeatherDataDb")
+        BH->>BH: Check concurrent calls (15 max)
+        
+        alt Bulkhead has capacity
+            BH->>+Service: Execute business logic
+            Service->>Service: validateRequest()
+            Service->>Service: mapper.toEntity()
+            Service->>+Repository: save(entity)
+            Repository->>+Database: INSERT INTO weather_data
+            Database-->>-Repository: Success
+            Repository-->>-Service: WeatherData entity
+            Service->>Service: mapper.toResponse()
+            Service->>Service: log.info() with correlationId
+            Service-->>-BH: WeatherDataResponse
+            BH-->>-CB: Success
+            CB->>CB: Record successful call
+            CB-->>-RT: Success
+            RT->>RT: Record success without retry
+            RT-->>-TL: Success
+            TL-->>-Service: Success
+        else Bulkhead at capacity
+            BH-->>CB: BulkheadFullException
+            CB->>CB: Record failure
+            CB-->>RT: Exception
+        end
+        
+    else Circuit Breaker OPEN
+        CB->>+Fallback: createWeatherDataFallback()
+        Fallback->>Fallback: log.error("Circuit breaker activated")
+        Fallback-->>-CB: WeatherServiceException
+        CB-->>RT: Exception from fallback
+    end
+    
+    alt Retry needed (on failure)
+        RT->>RT: Wait with exponential backoff + jitter
+        RT->>RT: Attempt 2/3
+        RT->>CB: Retry operation
+        Note over CB,Database: Repeat circuit breaker → bulkhead → database flow
+    end
+    
+    Service-->>-Controller: WeatherDataResponse
+    Controller->>-Metrics: timed() - End metrics
+    Metrics->>Metrics: Record operation.timer
+    Controller-->>-Client: 201 Created + Response
+```
+
+#### **Health Check Aggregation Flow**
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Endpoint as DeepHealthEndpoint
+    participant Aggregator as HealthIndicatorAggregator
+    participant AppHI as ApplicationHealthIndicator
+    participant DbHI as DatabaseHealthIndicator
+    participant CBHI as CircuitBreakerHealthIndicator
+    participant RetryHI as RetryHealthIndicator
+    participant RateLimitHI as RateLimiterHealthIndicator
+    participant TimeLimitHI as TimeLimiterHealthIndicator
+    participant BulkheadHI as BulkheadHealthIndicator
+    participant CBRegistry as CircuitBreakerRegistry
+    participant RetryRegistry as RetryRegistry
+
+    Client->>+Endpoint: GET /management/deephealth
+    Endpoint->>+Aggregator: aggregateHealth()
+    
+    Note over Aggregator,BulkheadHI: Parallel Health Checks
+    par Application Health
+        Aggregator->>+AppHI: health()
+        AppHI->>AppHI: Check Spring context
+        AppHI-->>-Aggregator: Health.UP + app details
+    and Database Health
+        Aggregator->>+DbHI: health()
+        DbHI->>DbHI: Execute "SELECT 1"
+        DbHI-->>-Aggregator: Health.UP + db details
+    and Circuit Breaker Health
+        Aggregator->>+CBHI: health()
+        CBHI->>+CBRegistry: getAllCircuitBreakers()
+        CBRegistry-->>-CBHI: 8 CircuitBreaker instances
+        loop For each Circuit Breaker
+            CBHI->>CBHI: Check state (CLOSED/OPEN/HALF_OPEN)
+            CBHI->>CBHI: Get metrics (failure rate, calls)
+        end
+        CBHI-->>-Aggregator: Health.UP + CB details
+    and Retry Health
+        Aggregator->>+RetryHI: health()
+        RetryHI->>+RetryRegistry: getAllRetries()
+        RetryRegistry-->>-RetryHI: 8 Retry instances
+        loop For each Retry
+            RetryHI->>RetryHI: Check metrics (success/failure rates)
+        end
+        RetryHI-->>-Aggregator: Health.UP + retry details
+    and Rate Limiter Health
+        Aggregator->>+RateLimitHI: health()
+        RateLimitHI->>RateLimitHI: Check waiting threads vs limits
+        RateLimitHI-->>-Aggregator: Health.UP + rate limit details
+    and Time Limiter Health
+        Aggregator->>+TimeLimitHI: health()
+        TimeLimitHI->>TimeLimitHI: Check timeout configurations
+        TimeLimitHI-->>-Aggregator: Health.UP + timeout details
+    and Bulkhead Health
+        Aggregator->>+BulkheadHI: health()
+        BulkheadHI->>BulkheadHI: Check capacity utilization
+        BulkheadHI-->>-Aggregator: Health.UP + capacity details
+    end
+    
+    Aggregator->>Aggregator: Aggregate all health statuses
+    Aggregator->>Aggregator: Apply priority logic (DOWN > DEGRADED > UNKNOWN > UP)
+    Aggregator->>Aggregator: Build final health response
+    Aggregator-->>-Endpoint: Aggregated Health.UP
+    Endpoint-->>-Client: 200 OK + Complete health details
+```
+
+#### **Circuit Breaker State Transitions**
+
+```mermaid
+stateDiagram-v2
+    [*] --> CLOSED
+    CLOSED --> OPEN : Failure rate > 50%\n(min 20 calls)
+    OPEN --> HALF_OPEN : After 30s wait duration
+    HALF_OPEN --> CLOSED : 10 successful calls
+    HALF_OPEN --> OPEN : Any failure
+    CLOSED --> FORCED_OPEN : Manual intervention
+    FORCED_OPEN --> CLOSED : Manual reset
+    OPEN --> FORCED_OPEN : Manual intervention
+    
+    note right of CLOSED
+        Normal operation
+        All calls allowed
+        Metrics collected
+    end note
+    
+    note right of OPEN
+        Failing fast
+        Calls rejected
+        Fallback executed
+    end note
+    
+    note right of HALF_OPEN
+        Testing recovery
+        Limited calls (10)
+        Evaluating health
+    end note
+```
+
+#### **Resilience Pattern Interaction Matrix**
+
+```mermaid
+graph TB
+    subgraph "Request Processing Flow"
+        Request[Incoming Request] --> TL[TimeLimiter<br/>3s timeout]
+        TL --> RT[Retry<br/>3 attempts + jitter]
+        RT --> CB[CircuitBreaker<br/>50% failure threshold]
+        CB --> BH[Bulkhead<br/>15 concurrent calls]
+        BH --> DB[(Database)]
+        
+        RT -.->|On failure| RT
+        CB -.->|OPEN state| FB[Fallback Method]
+        BH -.->|Capacity full| REJ[Request Rejected]
+        
+        style TL fill:#f9f,stroke:#333,stroke-width:2px
+        style RT fill:#bbf,stroke:#333,stroke-width:2px
+        style CB fill:#fbf,stroke:#333,stroke-width:2px
+        style BH fill:#bfb,stroke:#333,stroke-width:2px
+        style FB fill:#fbb,stroke:#333,stroke-width:2px
+    end
+    
+    subgraph "Monitoring & Events"
+        Events[Event Listeners]
+        Metrics[Micrometer Metrics]
+        Health[Health Indicators]
+        Logs[Structured Logs]
+        
+        TL --> Events
+        RT --> Events
+        CB --> Events
+        BH --> Events
+        Events --> Metrics
+        Events --> Health
+        Events --> Logs
+    end
+```
+
+#### **Database Operations Resilience Coverage**
+
+```mermaid
+graph LR
+    subgraph "CRUD Operations"
+        CREATE[createWeatherDataDb<br/>🔸 50 req/sec<br/>🔸 5s timeout<br/>🔸 15 concurrent]
+        READ[getWeatherDataDb<br/>🔸 100 req/sec<br/>🔸 3s timeout<br/>🔸 25 concurrent]
+        UPDATE[updateWeatherDataDb<br/>🔸 50 req/sec<br/>🔸 5s timeout<br/>🔸 15 concurrent]
+        DELETE[deleteWeatherDataDb<br/>🔸 25 req/sec<br/>🔸 3s timeout<br/>🔸 10 concurrent]
+    end
+    
+    subgraph "Query Operations"
+        CITIES[getAllCitiesDb<br/>🔸 100 req/sec<br/>🔸 2s timeout<br/>🔸 30 concurrent]
+        CITY[getWeatherByCityDb<br/>🔸 100 req/sec<br/>🔸 3s timeout<br/>🔸 25 concurrent]
+        LATEST[getLatestWeatherDb<br/>🔸 100 req/sec<br/>🔸 3s timeout<br/>🔸 25 concurrent]
+        RANGE[getWeatherByDateRangeDb<br/>🔸 100 req/sec<br/>🔸 10s timeout<br/>🔸 20 concurrent]
+    end
+    
+    subgraph "Resilience Components"
+        TL[TimeLimiter]
+        RT[Retry]
+        CB[CircuitBreaker]
+        BH[Bulkhead]
+        RL[RateLimiter]
+    end
+    
+    CREATE --> TL
+    CREATE --> RT
+    CREATE --> CB
+    CREATE --> BH
+    CREATE --> RL
+    
+    READ --> TL
+    READ --> RT
+    READ --> CB
+    READ --> BH
+    READ --> RL
+    
+    UPDATE --> TL
+    UPDATE --> RT
+    UPDATE --> CB
+    UPDATE --> BH
+    UPDATE --> RL
+    
+    DELETE --> TL
+    DELETE --> RT
+    DELETE --> CB
+    DELETE --> BH
+    DELETE --> RL
+    
+    CITIES --> TL
+    CITIES --> RT
+    CITIES --> CB
+    CITIES --> BH
+    CITIES --> RL
+    
+    CITY --> TL
+    CITY --> RT
+    CITY --> CB
+    CITY --> BH
+    CITY --> RL
+    
+    LATEST --> TL
+    LATEST --> RT
+    LATEST --> CB
+    LATEST --> BH
+    LATEST --> RL
+    
+    RANGE --> TL
+    RANGE --> RT
+    RANGE --> CB
+    RANGE --> BH
+    RANGE --> RL
+    
+    style CREATE fill:#ffcccc
+    style UPDATE fill:#ffcccc
+    style DELETE fill:#ffcccc
+    style READ fill:#ccffcc
+    style CITIES fill:#ccffcc
+    style CITY fill:#ccffcc
+    style LATEST fill:#ccffcc
+    style RANGE fill:#ccffcc
+```
+
 ## Reactive Programming Best Practices
 
 This weather service implements **enterprise-grade reactive programming patterns** following industry best practices for high-performance, scalable applications.
