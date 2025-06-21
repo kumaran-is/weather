@@ -105,29 +105,92 @@ This service provides RESTful endpoints to record, retrieve, update, and delete 
 ```
 weather/
 ├── src/main/java/com/weather/
-│   ├── controller/          # REST controllers
-│   ├── service/            # Business logic layer
-│   │   └── impl/           # Service implementations
-│   ├── repository/         # R2DBC repositories
-│   ├── entity/             # JPA entities (with Lombok)
-│   ├── dto/                # Data Transfer Objects (Java Records)
-│   ├── mapper/             # MapStruct mappers
-│   ├── config/             # Configuration classes
-│   ├── exception/          # Custom exceptions & global error handler
-│   ├── health/             # Custom health indicators
-│   └── WeatherServiceApplication.java
+│   ├── WeatherServiceApplication.java    # Main Spring Boot application
+│   ├── config/                          # Configuration classes
+│   │   ├── DatabaseConfig.java          # Database configuration
+│   │   ├── MetricsFilterConfig.java     # Metrics filtering configuration
+│   │   ├── MetricsProperties.java       # Custom metrics properties
+│   │   ├── ReactiveContextConfig.java   # Reactive context configuration
+│   │   ├── ReactiveContextWebFilter.java # Context enrichment filter
+│   │   ├── ReactiveMetricsConfig.java   # Reactive metrics configuration
+│   │   ├── ResilienceConfig.java        # Resilience4j registry configuration
+│   │   ├── SecurityConfig.java          # Security configuration
+│   │   └── WebFluxConfig.java           # WebFlux configuration
+│   ├── controller/                      # REST controllers
+│   │   └── WeatherDataController.java   # Weather data REST endpoints
+│   ├── dto/                            # Data Transfer Objects (Java Records)
+│   │   ├── ErrorResponse.java          # Error response DTO
+│   │   ├── PageResponse.java           # Paginated response DTO
+│   │   ├── WeatherDataRequest.java     # Weather data request DTO
+│   │   └── WeatherDataResponse.java    # Weather data response DTO
+│   ├── entity/                         # JPA entities (with Lombok)
+│   │   └── WeatherData.java            # Weather data entity
+│   ├── exception/                      # Custom exceptions & global error handler
+│   │   ├── BaseException.java          # Base exception class
+│   │   ├── GlobalErrorWebExceptionHandler.java # Global error handler
+│   │   ├── WeatherNotFoundException.java # Weather not found exception
+│   │   ├── WeatherServiceException.java # Weather service exception
+│   │   └── WeatherValidationException.java # Weather validation exception
+│   ├── health/                         # Custom health indicators
+│   │   ├── ApplicationHealthIndicator.java     # Application health indicator
+│   │   ├── BulkheadHealthIndicator.java       # Bulkhead health indicator
+│   │   ├── CircuitBreakerHealthIndicator.java # Circuit breaker health indicator
+│   │   ├── DatabaseHealthIndicator.java       # Database health indicator
+│   │   ├── DeepHealthEndpoint.java            # Custom deep health endpoint
+│   │   ├── HealthIndicatorAggregator.java     # Health indicator aggregator
+│   │   ├── RateLimiterHealthIndicator.java    # Rate limiter health indicator
+│   │   ├── ReactiveHealthIndicator.java       # Custom reactive health interface
+│   │   ├── RetryHealthIndicator.java          # Retry health indicator
+│   │   └── TimeLimiterHealthIndicator.java    # Time limiter health indicator
+│   ├── mapper/                         # MapStruct mappers
+│   │   └── WeatherDataMapper.java      # Weather data entity-DTO mapper
+│   ├── repository/                     # R2DBC repositories
+│   │   └── WeatherDataRepository.java  # Weather data repository
+│   ├── service/                        # Business logic layer
+│   │   ├── WeatherDataService.java     # Weather data service interface
+│   │   └── WeatherDataServiceImpl.java # Weather data service implementation
+│   └── util/                           # Utility classes
+│       └── ApplicationStartupVersionLogger.java # Application startup logger
 ├── src/main/resources/
-│   ├── application.yml     # Base configuration
-│   ├── application-local.yml  # H2 local configuration
-│   ├── application-dev.yml    # SQL Server dev configuration
-│   ├── log4j2.xml         # Logging configuration
-│   ├── schema.sql         # H2 database schema
-│   ├── schema-mssql.sql   # SQL Server schema
-│   └── data.sql           # Sample data for H2
-├── src/test/              # Unit and integration tests
-├── Dockerfile             # Multi-stage Docker build
-├── docker-compose.yml     # Docker Compose configuration
-└── README.md
+│   ├── application.yml              # Base configuration with resilience settings
+│   ├── application-local.yml        # H2 local configuration
+│   ├── application-dev.yml          # SQL Server dev configuration
+│   ├── banner.txt                   # Custom Spring Boot banner
+│   ├── data.sql                     # Sample data for H2
+│   ├── log4j2.xml                   # Logging configuration
+│   ├── schema.sql                   # H2 database schema
+│   └── schema-mssql.sql             # SQL Server schema
+├── src/test/java/com/weather/        # Unit and integration tests
+│   ├── WeatherServiceApplicationTests.java # Application context test
+│   ├── controller/
+│   │   └── WeatherDataControllerTest.java   # Controller tests
+│   ├── repository/                          # Repository tests (placeholder)
+│   └── service/
+│       └── WeatherDataServiceImplTest.java  # Service implementation tests
+├── docs/                            # Documentation
+│   ├── architecture/                # Architecture documentation
+│   │   ├── ARCHITECTURE.md          # Complete system architecture
+│   │   └── decisions/               # Architectural Decision Records (ADRs)
+│   │       ├── 0000-adr-template.md         # ADR template
+│   │       ├── 0001-reactive-architecture.md # Reactive architecture decision
+│   │       ├── 0002-r2dbc-database-access.md # R2DBC database access decision
+│   │       ├── 0003-java-21-adoption.md     # Java 21 adoption decision
+│   │       ├── 0004-resilience-patterns.md  # Resilience patterns decision
+│   │       ├── 0005-api-design-principles.md # API design principles decision
+│   │       └── README.md                    # ADR index
+│   ├── monitoring/                  # Monitoring documentation
+│   │   └── reactive-metrics.md      # Reactive metrics documentation
+│   ├── health-indicators-implementation.md  # Health indicators implementation guide
+│   └── resilience-patterns-implementation.md # Resilience patterns implementation guide
+├── logs/                            # Application logs
+│   ├── weather-service.log          # Current log file (only for local environment)
+├── target/                          # Maven build output
+├── Dockerfile                       # Multi-stage Docker build
+├── docker-compose.yml               # Docker Compose configuration
+├── pom.xml                          # Maven configuration
+├── mvnw                            # Maven wrapper script
+├── CHANGELOG.md                     # Change log
+└── README.md                        # This file
 ```
 
 ## Building the Project
