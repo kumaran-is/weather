@@ -21,7 +21,10 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.SequencedCollection;
 
 @Slf4j
 @Service
@@ -183,7 +186,10 @@ public class WeatherDataServiceImpl implements WeatherDataService {
         log.debug("Fetching all cities");
         
         return repository.findDistinctCities()
-                .doOnComplete(() -> log.debug("Successfully fetched all cities"))
+                .collectList()
+                .map(this::buildOrderedUniqueCollection)
+                .flatMapMany(orderedCities -> Flux.fromIterable(orderedCities))
+                .doOnComplete(() -> log.debug("Successfully fetched all cities in ordered collection"))
                 .onErrorMap(this::mapToServiceException);
     }
     
@@ -191,7 +197,7 @@ public class WeatherDataServiceImpl implements WeatherDataService {
         if (request.recordedAt().isAfter(LocalDateTime.now())) {
             return Mono.error(new WeatherValidationException("Recorded time cannot be in the future"));
         }
-        return Mono.empty();
+        return validateWeatherCondition(request.weatherCondition());
     }
     
     private Mono<Void> validateDateRange(LocalDateTime start, LocalDateTime end) {
@@ -201,29 +207,99 @@ public class WeatherDataServiceImpl implements WeatherDataService {
         return Mono.empty();
     }
     
+    // Java 21 Switch Expression for handling sort direction preferences
+    private String buildOrderByClause(String sortField, String sortDirection) {
+        String field = switch (sortField) {
+            case "temperature" -> "temperature";
+            case "humidity" -> "humidity";
+            case "pressure" -> "pressure";
+            case "windSpeed" -> "wind_speed";
+            case "city" -> "city";
+            case "recordedAt" -> "recorded_at";
+            default -> "recorded_at"; // Default sorting
+        };
+        
+        String direction = switch (sortDirection.toUpperCase()) {
+            case "ASC", "ASCENDING" -> "ASC";
+            case "DESC", "DESCENDING" -> "DESC";
+            default -> "DESC"; // Default to descending
+        };
+        
+        return field + " " + direction;
+    }
+    
+    // Enhanced validation with switch expressions
+    private Mono<Void> validateWeatherCondition(String condition) {
+        if (condition == null || condition.isBlank()) {
+            return Mono.empty();
+        }
+        
+        return switch (condition.toLowerCase().trim()) {
+            case "clear", "sunny", "cloudy", "overcast", "rainy", "stormy", 
+                 "snowy", "foggy", "windy", "humid", "dry" -> Mono.empty();
+            default -> Mono.error(new WeatherValidationException(
+                    "Invalid weather condition: " + condition + 
+                    ". Allowed values: clear, sunny, cloudy, overcast, rainy, stormy, snowy, foggy, windy, humid, dry"));
+        };
+    }
+    
+    // Enhanced with Java 21 SequencedCollection for predictable ordering
     private <T> PageResponse<T> buildPageResponse(List<T> content, int page, int size, long totalElements) {
         int totalPages = (int) Math.ceil((double) totalElements / size);
         
+        // Use SequencedCollection to ensure predictable ordering
+        SequencedCollection<T> orderedContent = new ArrayList<>(content);
+        List<T> finalContent = new ArrayList<>(orderedContent);
+        
         return new PageResponse<>(
-                content,
+                finalContent,
                 page,
                 size,
                 totalElements,
                 totalPages,
                 page == 0,
                 page >= totalPages - 1,
-                content.size(),
-                content.isEmpty()
+                finalContent.size(),
+                finalContent.isEmpty()
         );
     }
     
+    // Utility method for handling unique ordered cities using SequencedCollection
+    private SequencedCollection<String> buildOrderedUniqueCollection(List<String> cities) {
+        // LinkedHashSet maintains insertion order while ensuring uniqueness
+        SequencedCollection<String> orderedCities = new LinkedHashSet<>();
+        orderedCities.addAll(cities);
+        return orderedCities;
+    }
+    
     private Throwable mapToServiceException(Throwable throwable) {
-        if (throwable instanceof WeatherNotFoundException || 
-            throwable instanceof WeatherValidationException) {
-            return throwable;
-        }
-        log.error("Unexpected error in weather service", throwable);
-        return new WeatherServiceException("An error occurred while processing weather data", throwable);
+        // Java 21 Switch Expression for cleaner exception mapping
+        return switch (throwable) {
+            case WeatherNotFoundException wnfEx -> {
+                log.debug("Weather data not found: {}", wnfEx.getMessage());
+                yield wnfEx;
+            }
+            case WeatherValidationException wvEx -> {
+                log.debug("Validation error: {}", wvEx.getMessage());
+                yield wvEx;
+            }
+            case org.springframework.dao.DataAccessException daEx -> {
+                log.error("Database access error in weather service", daEx);
+                yield new WeatherServiceException("Database operation failed", daEx);
+            }
+            case java.util.concurrent.TimeoutException tEx -> {
+                log.error("Timeout error in weather service", tEx);
+                yield new WeatherServiceException("Operation timed out", tEx);
+            }
+            case IllegalArgumentException iaEx -> {
+                log.error("Invalid argument in weather service", iaEx);
+                yield new WeatherValidationException("Invalid input: " + iaEx.getMessage());
+            }
+            default -> {
+                log.error("Unexpected error in weather service", throwable);
+                yield new WeatherServiceException("An error occurred while processing weather data", throwable);
+            }
+        };
     }
     
     // Fallback methods for circuit breaker

@@ -33,6 +33,7 @@ A reactive REST service for managing weather data, built with Java 21, Spring Bo
 - [Logging](#logging)
 - [Error Handling](#error-handling)
 - [Resilience Patterns](#resilience-patterns)
+- [Architecture Documentation](#architecture-documentation)
 
 ## Overview
 
@@ -1239,6 +1240,28 @@ docker run -p 8080:8080 -e SPRING_PROFILES_ACTIVE=local weather-service
 - **Cancel running futures**: true
 
 All resilience metrics are available via health checks and monitoring endpoints.
+
+## Architecture Documentation
+
+For detailed architectural decisions and design principles, see:
+
+### 📚 **Architecture Documentation**
+- **[Architecture Overview](docs/architecture/ARCHITECTURE.md)** - Complete system architecture and design principles
+- **[Architectural Decision Records (ADRs)](docs/architecture/decisions/README.md)** - Detailed decision documentation
+
+### 🔍 **Key Architectural Decisions**
+- **[ADR-0001: Reactive Architecture](docs/architecture/decisions/0001-reactive-architecture.md)** - Spring WebFlux adoption rationale
+- **[ADR-0002: R2DBC Database Access](docs/architecture/decisions/0002-r2dbc-database-access.md)** - Reactive database strategy
+- **[ADR-0003: Java 21 Adoption](docs/architecture/decisions/0003-java-21-adoption.md)** - Modern language features usage
+- **[ADR-0004: Resilience Patterns](docs/architecture/decisions/0004-resilience-patterns.md)** - Fault tolerance implementation
+- **[ADR-0005: API Design Principles](docs/architecture/decisions/0005-api-design-principles.md)** - RESTful API standards
+
+### 🏗️ **Architecture Highlights**
+- **100% Reactive Stack**: End-to-end non-blocking I/O with Spring WebFlux + R2DBC
+- **Java 21 Features**: Pattern matching, switch expressions, sequenced collections
+- **Resilience4j Integration**: Circuit breaker, retry, rate limiting, time limiting
+- **Comprehensive Documentation**: OpenAPI 3.0 with extensive examples
+- **Cloud-Native Ready**: Azure deployment configurations with health probes
 
 ---
 

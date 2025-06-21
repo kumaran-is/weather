@@ -51,8 +51,9 @@ public class GlobalErrorWebExceptionHandler implements ErrorWebExceptionHandler 
         String path = exchange.getRequest().getPath().value();
         LocalDateTime timestamp = LocalDateTime.now();
         
-        if (ex instanceof BaseException baseEx) {
-            return new ErrorResponse(
+        // Java 21 Pattern Matching for enhanced error handling
+        return switch (ex) {
+            case BaseException baseEx -> new ErrorResponse(
                     baseEx.getCode(),
                     baseEx.getMessage(),
                     baseEx.getHttpStatus().value(),
@@ -60,36 +61,64 @@ public class GlobalErrorWebExceptionHandler implements ErrorWebExceptionHandler 
                     timestamp,
                     null
             );
-        }
-        
-        if (ex instanceof WebExchangeBindException bindEx) {
-            List<ErrorResponse.ValidationError> validationErrors = bindEx.getFieldErrors()
-                    .stream()
-                    .map(fieldError -> new ErrorResponse.ValidationError(
-                            fieldError.getField(),
-                            fieldError.getRejectedValue(),
-                            fieldError.getDefaultMessage()
-                    ))
-                    .collect(Collectors.toList());
             
-            return new ErrorResponse(
-                    "VALIDATION_ERROR",
-                    "Validation failed",
+            case WebExchangeBindException bindEx -> {
+                List<ErrorResponse.ValidationError> validationErrors = bindEx.getFieldErrors()
+                        .stream()
+                        .map(fieldError -> new ErrorResponse.ValidationError(
+                                fieldError.getField(),
+                                fieldError.getRejectedValue(),
+                                fieldError.getDefaultMessage()
+                        ))
+                        .collect(Collectors.toList());
+                
+                yield new ErrorResponse(
+                        "VALIDATION_ERROR",
+                        "Validation failed",
+                        HttpStatus.BAD_REQUEST.value(),
+                        path,
+                        timestamp,
+                        validationErrors
+                );
+            }
+            
+            // Pattern matching for specific exception types with enhanced error codes
+            case IllegalArgumentException illegalArgEx -> new ErrorResponse(
+                    "INVALID_ARGUMENT",
+                    "Invalid argument provided: " + illegalArgEx.getMessage(),
                     HttpStatus.BAD_REQUEST.value(),
                     path,
                     timestamp,
-                    validationErrors
+                    null
             );
-        }
-        
-        // Default error response
-        return new ErrorResponse(
-                "INTERNAL_SERVER_ERROR",
-                "An unexpected error occurred",
-                HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                path,
-                timestamp,
-                null
-        );
+            
+            case java.util.concurrent.TimeoutException timeoutEx -> new ErrorResponse(
+                    "REQUEST_TIMEOUT",
+                    "Request processing timed out",
+                    HttpStatus.REQUEST_TIMEOUT.value(),
+                    path,
+                    timestamp,
+                    null
+            );
+            
+            case org.springframework.dao.DataAccessException dataEx -> new ErrorResponse(
+                    "DATA_ACCESS_ERROR",
+                    "Database operation failed",
+                    HttpStatus.SERVICE_UNAVAILABLE.value(),
+                    path,
+                    timestamp,
+                    null
+            );
+            
+            // Default case for unhandled exceptions
+            default -> new ErrorResponse(
+                    "INTERNAL_SERVER_ERROR",
+                    "An unexpected error occurred",
+                    HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                    path,
+                    timestamp,
+                    null
+            );
+        };
     }
 }
