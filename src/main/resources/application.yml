@@ -125,3 +125,8 @@ weather:
       # - "/api/auth/"
       # - "/api/v2/"
       # - "/admin/api/"
+
+# Application properties for banner and info
+application:
+  title: "@project.name@"
+  version: "@project.version@"
