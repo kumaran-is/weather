@@ -110,3 +110,18 @@ info:
     encoding: "@project.build.sourceEncoding@"
     java:
       version: "@java.version@"
+
+# Weather service specific configuration
+weather:
+  metrics:
+    # Enable custom reactive metrics collection
+    enabled: true
+    # Include detailed URI and method tags in metrics
+    include-detailed-tags: true
+    # API path prefixes to include in custom metrics (future-proof for multiple APIs)
+    included-api-paths:
+      - "/api/v1/"
+      # Future extensions:
+      # - "/api/auth/"
+      # - "/api/v2/"
+      # - "/admin/api/"

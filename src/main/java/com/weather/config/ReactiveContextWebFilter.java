@@ -20,14 +20,15 @@ public class ReactiveContextWebFilter implements WebFilter {
     
     private final ReactiveContextConfig.ReactiveContextPropagation contextPropagation;
     private final ReactiveMetricsConfig.ReactiveMetricsCollector metricsCollector;
+    private final MetricsProperties metricsProperties;
     
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
         String requestPath = exchange.getRequest().getPath().value();
         String method = exchange.getRequest().getMethod().name();
         
-        // Only collect custom metrics for REST API endpoints (not management endpoints)
-        boolean isApiEndpoint = requestPath.startsWith("/api/v1/");
+        // Use configurable API paths to determine if metrics should be collected
+        boolean isApiEndpoint = metricsProperties.shouldIncludeInMetrics(requestPath);
         Long startTime = isApiEndpoint ? System.nanoTime() : null;
         
         return chain.filter(exchange)
