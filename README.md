@@ -195,6 +195,21 @@ weather/
 
 ## Building the Project
 
+### Maven Wrapper (mvnw)
+
+This project uses the Maven Wrapper (`mvnw`) to ensure build consistency across different environments:
+
+- **`./mvnw`** - Uses the exact Maven version specified in `.mvn/wrapper/maven-wrapper.properties`
+- **`mvn`** - Uses your locally installed Maven version
+
+**Benefits of Maven Wrapper:**
+- **Version Consistency**: Guarantees all team members use the same Maven version
+- **No Local Installation Required**: Downloads Maven automatically if not present
+- **Reproducible Builds**: Eliminates "works on my machine" issues related to Maven versions
+- **CI/CD Friendly**: Ensures consistent builds across development and deployment environments
+
+**Usage:** You can use either `./mvnw` or `mvn` for development, but `./mvnw` is recommended for team consistency and production builds.
+
 ### Build with tests:
 ```bash
 ./mvnw clean package
