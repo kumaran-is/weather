@@ -56,51 +56,65 @@ public class ReactiveMetricsConfig {
          * Add timing metrics to a Mono with automatic subscription tracking.
          */
         public <T> Mono<T> timed(Mono<T> mono, String operationName) {
-            return mono
-                    .doOnSubscribe(subscription -> {
-                        activeSubscriptions.incrementAndGet();
-                        totalSubscriptions.incrementAndGet();
-                        meterRegistry.counter("reactive.subscription.started", 
-                                Tags.of("operation", operationName)).increment();
-                    })
-                    .doFinally(signalType -> {
-                        activeSubscriptions.decrementAndGet();
-                        recordSignalType(operationName, signalType);
-                    })
-                    .name("reactive.operation")
-                    .tag("operation", operationName);
-                    // Note: .metrics() is deprecated. For production use, consider using 
-                    // tap(SignalListenerFactory) with reactor-core-micrometer module
+            Timer timer = Timer.builder("reactive.operation.timer")
+                    .tag("operation", operationName)
+                    .register(meterRegistry);
+            
+            return Mono.fromCallable(() -> System.nanoTime())
+                    .flatMap(startTime -> mono
+                            .doOnSubscribe(subscription -> {
+                                activeSubscriptions.incrementAndGet();
+                                totalSubscriptions.incrementAndGet();
+                                meterRegistry.counter("reactive.subscription.started", 
+                                        Tags.of("operation", operationName)).increment();
+                            })
+                            .doOnSuccess(result -> {
+                                timer.record(System.nanoTime() - startTime, java.util.concurrent.TimeUnit.NANOSECONDS);
+                            })
+                            .doOnError(error -> {
+                                timer.record(System.nanoTime() - startTime, java.util.concurrent.TimeUnit.NANOSECONDS);
+                            })
+                            .doFinally(signalType -> {
+                                activeSubscriptions.decrementAndGet();
+                                recordSignalType(operationName, signalType);
+                            }));
         }
         
         /**
          * Add metrics to a Flux with backpressure monitoring.
          */
         public <T> Flux<T> timedFlux(Flux<T> flux, String operationName) {
-            return flux
-                    .doOnSubscribe(subscription -> {
-                        activeSubscriptions.incrementAndGet();
-                        totalSubscriptions.incrementAndGet();
-                        meterRegistry.counter("reactive.flux.subscription.started", 
-                                Tags.of("operation", operationName)).increment();
-                    })
-                    .doOnNext(item -> {
-                        meterRegistry.counter("reactive.flux.items.emitted", 
-                                Tags.of("operation", operationName)).increment();
-                    })
-                    .doOnRequest(n -> {
-                        meterRegistry.counter("reactive.flux.items.requested", 
-                                Tags.of("operation", operationName)).increment(n);
-                        log.debug("Flux requested {} items for operation: {}", n, operationName);
-                    })
-                    .doFinally(signalType -> {
-                        activeSubscriptions.decrementAndGet();
-                        recordSignalType(operationName, signalType);
-                    })
-                    .name("reactive.flux")
-                    .tag("operation", operationName);
-                    // Note: .metrics() is deprecated. For production use, consider using 
-                    // tap(SignalListenerFactory) with reactor-core-micrometer module
+            Timer timer = Timer.builder("reactive.flux.timer")
+                    .tag("operation", operationName)
+                    .register(meterRegistry);
+            
+            return Mono.fromCallable(() -> System.nanoTime())
+                    .flatMapMany(startTime -> flux
+                            .doOnSubscribe(subscription -> {
+                                activeSubscriptions.incrementAndGet();
+                                totalSubscriptions.incrementAndGet();
+                                meterRegistry.counter("reactive.flux.subscription.started", 
+                                        Tags.of("operation", operationName)).increment();
+                            })
+                            .doOnNext(item -> {
+                                meterRegistry.counter("reactive.flux.items.emitted", 
+                                        Tags.of("operation", operationName)).increment();
+                            })
+                            .doOnRequest(n -> {
+                                meterRegistry.counter("reactive.flux.items.requested", 
+                                        Tags.of("operation", operationName)).increment(n);
+                                log.debug("Flux requested {} items for operation: {}", n, operationName);
+                            })
+                            .doOnComplete(() -> {
+                                timer.record(System.nanoTime() - startTime, java.util.concurrent.TimeUnit.NANOSECONDS);
+                            })
+                            .doOnError(error -> {
+                                timer.record(System.nanoTime() - startTime, java.util.concurrent.TimeUnit.NANOSECONDS);
+                            })
+                            .doFinally(signalType -> {
+                                activeSubscriptions.decrementAndGet();
+                                recordSignalType(operationName, signalType);
+                            }));
         }
         
         /**

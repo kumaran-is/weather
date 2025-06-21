@@ -19,16 +19,28 @@ import reactor.util.context.Context;
 public class ReactiveContextWebFilter implements WebFilter {
     
     private final ReactiveContextConfig.ReactiveContextPropagation contextPropagation;
+    private final ReactiveMetricsConfig.ReactiveMetricsCollector metricsCollector;
     
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
         String requestPath = exchange.getRequest().getPath().value();
         String method = exchange.getRequest().getMethod().name();
         
+        // Automatically collect metrics for all reactive requests
+        long startTime = System.nanoTime();
+        
         return chain.filter(exchange)
                 .contextWrite(context -> enrichContext(context, requestPath, method))
-                .doOnSuccess(unused -> logRequestCompletion(requestPath, method))
-                .doOnError(error -> logRequestError(requestPath, method, error));
+                .doOnSuccess(unused -> {
+                    // Record request timing automatically
+                    metricsCollector.stopTimer(startTime, "http_request", "success");
+                    logRequestCompletion(requestPath, method);
+                })
+                .doOnError(error -> {
+                    // Record error timing automatically  
+                    metricsCollector.stopTimer(startTime, "http_request", "error");
+                    logRequestError(requestPath, method, error);
+                });
     }
     
     /**
