@@ -1487,19 +1487,19 @@ sequenceDiagram
     Controller->>+Service: createWeatherData(request)
     
     Note over TL,BH: Resilience Pattern Stack (Annotation Order)
-    Service->>+TL: @TimeLimiter(name="createWeatherDataDb")
+    Service->>TL: @TimeLimiter(name="createWeatherDataDb")
     TL->>TL: Check timeout (5s max)
-    TL->>+RT: Proceed if within time limit
+    TL->>RT: Proceed if within time limit
     
     RT->>RT: @Retry(name="createWeatherDataDb")
     RT->>RT: Attempt 1/3 with jitter
-    RT->>+CB: Proceed to circuit breaker
+    RT->>CB: Proceed to circuit breaker
     
     CB->>CB: @CircuitBreaker(name="createWeatherDataDb")
     CB->>CB: Check state: CLOSED/OPEN/HALF_OPEN
     
     alt Circuit Breaker CLOSED
-        CB->>+BH: Proceed to bulkhead
+        CB->>BH: Proceed to bulkhead
         BH->>BH: @Bulkhead(name="createWeatherDataDb")
         BH->>BH: Check concurrent calls (15 max)
         
@@ -1514,27 +1514,17 @@ sequenceDiagram
             Service->>Service: mapper.toResponse()
             Service->>Service: log.info() with correlationId
             Service-->>BH: WeatherDataResponse
-            BH-->>-CB: Success
+            BH-->>CB: Success
             CB->>CB: Record successful call
-            CB-->>-RT: Success
-            RT->>RT: Record success without retry
-            RT-->>-TL: Success
-            TL-->>-Service: Success
         else Bulkhead at capacity
-            BH-->>-CB: BulkheadFullException
+            BH-->>CB: BulkheadFullException
             CB->>CB: Record failure
-            CB-->>-RT: Exception
-            RT-->>-TL: Exception
-            TL-->>-Service: Exception
         end
         
     else Circuit Breaker OPEN
         CB->>+Fallback: createWeatherDataFallback()
         Fallback->>Fallback: log.error("Circuit breaker activated")
         Fallback-->>-CB: WeatherServiceException
-        CB-->>-RT: Exception from fallback
-        RT-->>-TL: Exception
-        TL-->>-Service: Exception
     end
     
     alt Retry needed (on failure)
