@@ -97,8 +97,10 @@ This service provides RESTful endpoints to record, retrieve, update, and delete 
 3. **Access the application:**
    - **Swagger UI**: http://localhost:8080/swagger-ui.html
    - **Health Check**: http://localhost:8080/management/health
-   - **API Base**: http://localhost:8080/api/v1/weather
    - **Deep Health**: http://localhost:8080/management/deephealth
+   - **Application Info**: http://localhost:8080/management/info
+   - **API Base**: http://localhost:8080/api/v1/weather
+   
 
 ## Project Structure
 
