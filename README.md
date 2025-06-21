@@ -1473,7 +1473,7 @@ sequenceDiagram
     participant BH as Bulkhead
     participant Service as WeatherDataServiceImpl
     participant Repository as WeatherDataRepository
-    participant Database as H2 Database
+    participant Database as H2Database
     participant Fallback as FallbackMethod
 
     Client->>+Controller: POST /api/v1/weather
@@ -1481,7 +1481,7 @@ sequenceDiagram
     Filter->>Filter: Generate correlationId
     Filter->>Filter: Add requestTiming
     Filter->>Filter: Add userContext
-    Filter->>-Controller: Context enriched
+    Filter-->>-Controller: Context enriched
     
     Controller->>+Metrics: timed() - Start metrics
     Controller->>+Service: createWeatherData(request)
@@ -1491,20 +1491,20 @@ sequenceDiagram
     TL->>TL: Check timeout (5s max)
     TL->>+RT: Proceed if within time limit
     
-    RT->>+RT: @Retry(name="createWeatherDataDb")
+    RT->>RT: @Retry(name="createWeatherDataDb")
     RT->>RT: Attempt 1/3 with jitter
     RT->>+CB: Proceed to circuit breaker
     
-    CB->>+CB: @CircuitBreaker(name="createWeatherDataDb")
+    CB->>CB: @CircuitBreaker(name="createWeatherDataDb")
     CB->>CB: Check state: CLOSED/OPEN/HALF_OPEN
     
     alt Circuit Breaker CLOSED
         CB->>+BH: Proceed to bulkhead
-        BH->>+BH: @Bulkhead(name="createWeatherDataDb")
+        BH->>BH: @Bulkhead(name="createWeatherDataDb")
         BH->>BH: Check concurrent calls (15 max)
         
         alt Bulkhead has capacity
-            BH->>+Service: Execute business logic
+            BH->>Service: Execute business logic
             Service->>Service: validateRequest()
             Service->>Service: mapper.toEntity()
             Service->>+Repository: save(entity)
@@ -1513,7 +1513,7 @@ sequenceDiagram
             Repository-->>-Service: WeatherData entity
             Service->>Service: mapper.toResponse()
             Service->>Service: log.info() with correlationId
-            Service-->>-BH: WeatherDataResponse
+            Service-->>BH: WeatherDataResponse
             BH-->>-CB: Success
             CB->>CB: Record successful call
             CB-->>-RT: Success
@@ -1521,16 +1521,20 @@ sequenceDiagram
             RT-->>-TL: Success
             TL-->>-Service: Success
         else Bulkhead at capacity
-            BH-->>CB: BulkheadFullException
+            BH-->>-CB: BulkheadFullException
             CB->>CB: Record failure
-            CB-->>RT: Exception
+            CB-->>-RT: Exception
+            RT-->>-TL: Exception
+            TL-->>-Service: Exception
         end
         
     else Circuit Breaker OPEN
         CB->>+Fallback: createWeatherDataFallback()
         Fallback->>Fallback: log.error("Circuit breaker activated")
         Fallback-->>-CB: WeatherServiceException
-        CB-->>RT: Exception from fallback
+        CB-->>-RT: Exception from fallback
+        RT-->>-TL: Exception
+        TL-->>-Service: Exception
     end
     
     alt Retry needed (on failure)
@@ -1541,7 +1545,7 @@ sequenceDiagram
     end
     
     Service-->>-Controller: WeatherDataResponse
-    Controller->>-Metrics: timed() - End metrics
+    Controller-->>-Metrics: timed() - End metrics
     Metrics->>Metrics: Record operation.timer
     Controller-->>-Client: 201 Created + Response
 ```
