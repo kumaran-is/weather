@@ -6,7 +6,7 @@ import com.weather.entity.WeatherData;
 import com.weather.exception.WeatherNotFoundException;
 import com.weather.mapper.WeatherDataMapper;
 import com.weather.repository.WeatherDataRepository;
-import com.weather.service.impl.WeatherDataServiceImpl;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

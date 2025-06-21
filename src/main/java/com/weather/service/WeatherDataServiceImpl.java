@@ -1,4 +1,4 @@
-package com.weather.service.impl;
+package com.weather.service;
 
 import com.weather.dto.PageResponse;
 import com.weather.dto.WeatherDataRequest;
@@ -8,7 +8,7 @@ import com.weather.exception.WeatherServiceException;
 import com.weather.exception.WeatherValidationException;
 import com.weather.mapper.WeatherDataMapper;
 import com.weather.repository.WeatherDataRepository;
-import com.weather.service.WeatherDataService;
+
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
