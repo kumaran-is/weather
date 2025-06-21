@@ -26,19 +26,24 @@ public class ReactiveContextWebFilter implements WebFilter {
         String requestPath = exchange.getRequest().getPath().value();
         String method = exchange.getRequest().getMethod().name();
         
-        // Automatically collect metrics for all reactive requests
-        long startTime = System.nanoTime();
+        // Only collect custom metrics for REST API endpoints (not management endpoints)
+        boolean isApiEndpoint = requestPath.startsWith("/api/v1/");
+        Long startTime = isApiEndpoint ? System.nanoTime() : null;
         
         return chain.filter(exchange)
                 .contextWrite(context -> enrichContext(context, requestPath, method))
                 .doOnSuccess(unused -> {
-                    // Record request timing automatically
-                    metricsCollector.stopTimer(startTime, "http_request", "success");
+                    if (isApiEndpoint && startTime != null) {
+                        // Record request timing with URI and method tags
+                        metricsCollector.stopTimer(startTime, "api_request", "success", requestPath, method);
+                    }
                     logRequestCompletion(requestPath, method);
                 })
                 .doOnError(error -> {
-                    // Record error timing automatically  
-                    metricsCollector.stopTimer(startTime, "http_request", "error");
+                    if (isApiEndpoint && startTime != null) {
+                        // Record error timing with URI and method tags
+                        metricsCollector.stopTimer(startTime, "api_request", "error", requestPath, method);
+                    }
                     logRequestError(requestPath, method, error);
                 });
     }

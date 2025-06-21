@@ -154,14 +154,23 @@ public class ReactiveMetricsConfig {
         }
         
         /**
-         * Stop timer and record the duration.
+         * Stop timer and record the duration with URL and method tags.
          */
-        public void stopTimer(long startTime, String operationName, String result) {
+        public void stopTimer(long startTime, String operationName, String result, String uri, String method) {
             Timer.builder("reactive.operation.timer")
                     .tag("operation", operationName)
                     .tag("result", result)
+                    .tag("uri", uri)
+                    .tag("method", method)
                     .register(meterRegistry)
                     .record(System.nanoTime() - startTime, java.util.concurrent.TimeUnit.NANOSECONDS);
+        }
+        
+        /**
+         * Stop timer and record the duration (backward compatibility).
+         */
+        public void stopTimer(long startTime, String operationName, String result) {
+            stopTimer(startTime, operationName, result, "unknown", "unknown");
         }
         
         /**
