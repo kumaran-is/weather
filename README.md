@@ -32,7 +32,7 @@ A reactive REST service for managing weather data, built with Java 21, Spring Bo
 - [Docker Support](#docker-support)
 - [Logging](#logging)
 - [Error Handling](#error-handling)
-- [Resilience Patterns](#resilience-patterns)
+- [Resilience Patterns & Health Monitoring](#resilience-patterns--health-monitoring)
 - [Reactive Programming Best Practices](#reactive-programming-best-practices)
 - [Architecture Documentation](#architecture-documentation)
 
@@ -1219,28 +1219,243 @@ docker run -p 8080:8080 -e SPRING_PROFILES_ACTIVE=local weather-service
 }
 ```
 
-## Resilience Patterns
+## Resilience Patterns & Health Monitoring
 
-### Circuit Breaker
-- **Sliding window**: 10 calls
-- **Failure threshold**: 50%
-- **Wait duration**: 10 seconds
-- **Half-open calls**: 3
+This Weather Service implements **enterprise-grade resilience patterns** and **comprehensive health monitoring** to ensure high availability, fault tolerance, and operational visibility.
 
-### Retry
-- **Max attempts**: 3
-- **Wait duration**: 1 second
-- **Retry on**: DataAccessException, SQLException
+### 🛡️ **Comprehensive Resilience Implementation**
 
-### Rate Limiter
-- **Requests per second**: 100
-- **Timeout**: 1 second
+#### **Registry-Based Architecture**
+- **Centralized Configuration**: All resilience components managed through registries
+- **Operation-Specific Isolation**: Each of the 8 database operations has independent resilience settings
+- **Event-Driven Monitoring**: Real-time event listeners for all resilience components
+- **Dynamic Configuration**: Runtime configuration changes through Spring configuration
 
-### Time Limiter
-- **Timeout**: 3 seconds
-- **Cancel running futures**: true
+#### **Resilience Pattern Stack (Proper Ordering)**
+```
+Request → TimeLimiter → Retry → CircuitBreaker → Bulkhead → Database
+```
 
-All resilience metrics are available via health checks and monitoring endpoints.
+**Why This Order Matters:**
+1. **TimeLimiter** (1st): Prevents operations from hanging indefinitely
+2. **Retry** (2nd): Retries failed calls (including timeouts) with exponential backoff + jitter  
+3. **CircuitBreaker** (3rd): Prevents cascade failures when retries consistently fail
+4. **Bulkhead** (4th): Isolates concurrent execution to prevent resource exhaustion
+
+#### **Resilience Components Coverage**
+
+| Component | Coverage | Key Features |
+|-----------|----------|--------------|
+| **Circuit Breaker** | 8 Operations | COUNT_BASED sliding window, auto half-open transition |
+| **Retry** | 8 Operations | Exponential backoff with jitter, exception-specific retry |
+| **Rate Limiter** | 8 Operations | Operation-specific limits (25-100 req/sec) |
+| **Time Limiter** | 8 Operations | Operation-specific timeouts (2s-10s) |
+| **Bulkhead** | 8 Operations | Concurrent call isolation (10-30 calls) |
+
+#### **Database Operations Protected**
+All database operations have independent resilience configurations:
+
+1. **createWeatherDataDb** - Write operations (50 req/sec, 5s timeout, 15 concurrent)
+2. **getWeatherDataDb** - ID lookups (100 req/sec, 3s timeout, 25 concurrent)
+3. **updateWeatherDataDb** - Update operations (50 req/sec, 5s timeout, 15 concurrent)
+4. **deleteWeatherDataDb** - Delete operations (25 req/sec, 3s timeout, 10 concurrent)
+5. **getAllCitiesDb** - City queries (100 req/sec, 2s timeout, 30 concurrent)
+6. **getWeatherByCityDb** - City lookups (100 req/sec, 3s timeout, 25 concurrent)
+7. **getLatestWeatherDb** - Latest queries (100 req/sec, 3s timeout, 25 concurrent)
+8. **getWeatherByDateRangeDb** - Range queries (100 req/sec, 10s timeout, 20 concurrent)
+
+#### **Smart Retry Configuration**
+```yaml
+resilience4j:
+  retry:
+    configs:
+      default:
+        max-attempts: 3
+        wait-duration: 500ms
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        exponential-max-wait-duration: 5s
+        enable-random-jitter: true          # Prevents thundering herd
+        retry-exceptions:
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+          - org.springframework.dao.DataAccessException
+        ignore-exceptions:
+          - com.weather.exception.WeatherValidationException  # Don't retry validation errors
+```
+
+#### **Fallback Mechanisms**
+- **Graceful Degradation**: All operations have fallback methods
+- **Consistent Error Responses**: Standardized error handling with meaningful messages
+- **Reactive Chain Preservation**: Maintains reactive flow with `Mono.error()`
+
+### 🏥 **Comprehensive Health Monitoring System**
+
+#### **Individual Health Indicators**
+Modular health monitoring with dedicated indicators for each component:
+
+| Health Indicator | Monitors | Warning Conditions |
+|------------------|----------|-------------------|
+| **ApplicationHealthIndicator** | Basic app status | Application context failures |
+| **DatabaseHealthIndicator** | R2DBC connectivity | Connection timeouts, query failures |
+| **CircuitBreakerHealthIndicator** | All circuit breakers | OPEN/HALF_OPEN states |
+| **RetryHealthIndicator** | All retry mechanisms | High failure rates after retries |
+| **RateLimiterHealthIndicator** | All rate limiters | High waiting thread counts |
+| **TimeLimiterHealthIndicator** | All time limiters | Very short timeout configurations |
+| **BulkheadHealthIndicator** | All bulkheads | High capacity utilization (>90%) |
+
+#### **Aggregated Health Logic**
+Smart health aggregation with priority-based status determination:
+
+```
+Status Priority: DOWN > DEGRADED > UNKNOWN > UP
+```
+
+- **DOWN**: Critical components failed (database, circuit breakers open)
+- **DEGRADED**: Components showing concerning patterns  
+- **UNKNOWN**: Components in uncertain states (half-open circuit breakers)
+- **UP**: All systems operational
+
+#### **Health Endpoints**
+
+**Standard Health Endpoint:**
+```bash
+curl http://localhost:8080/management/health
+# Returns: Aggregated health with individual component details
+```
+
+**Deep Health Endpoint (Custom Actuator Endpoint):**
+```bash
+curl http://localhost:8080/management/deephealth  
+# Returns: Comprehensive health view with detailed metrics
+```
+
+**Individual Component Health:**
+```bash
+# Check specific resilience components
+curl http://localhost:8080/management/health/circuitBreakers
+curl http://localhost:8080/management/health/retries
+curl http://localhost:8080/management/health/rateLimiters
+```
+
+#### **Conditional Health Indicators**
+All health indicators can be enabled/disabled via configuration:
+
+```yaml
+# Health indicator configuration
+health:
+  application:
+    enabled: true
+  db:
+    enabled: true
+  circuitbreaker:
+    enabled: true
+  retry:
+    enabled: true
+  ratelimiter:
+    enabled: true
+  timelimiter:
+    enabled: true
+  bulkhead:
+    enabled: true
+```
+
+### 📊 **Observability & Metrics**
+
+#### **Event-Driven Monitoring**
+Comprehensive event listeners provide real-time visibility:
+
+- **Circuit Breaker Events**: State transitions, call rejections, error recordings
+- **Retry Events**: Retry attempts, success after retry, final failures
+- **Rate Limiter Events**: Permission acquisitions, rejections, waiting threads
+- **Time Limiter Events**: Timeout occurrences, successful completions
+- **Bulkhead Events**: Call permissions, rejections, capacity usage
+
+#### **Metrics Integration**
+- **Micrometer Integration**: All resilience metrics exported to monitoring systems
+- **Custom Metrics**: Reactive-specific metrics for stream monitoring
+- **Health Metrics**: Real-time health status metrics
+
+#### **Logging Integration**
+- **Correlation IDs**: Automatic correlation ID propagation through reactive chains
+- **Structured Logging**: JSON-formatted logs with contextual information
+- **Event Logging**: All resilience events logged with appropriate levels
+
+### 🔧 **Configuration & Customization**
+
+#### **Environment-Specific Configuration**
+```yaml
+# Development - More lenient
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        failure-rate-threshold: 70
+
+# Production - Stricter
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:  
+        failure-rate-threshold: 50
+```
+
+#### **Runtime Configuration**
+- **Registry-Based**: Dynamic configuration through registries
+- **Spring Profiles**: Environment-specific settings
+- **External Configuration**: Support for config servers and dynamic updates
+
+### 📚 **Detailed Documentation**
+
+For comprehensive implementation details, see our dedicated documentation:
+
+#### **📖 Resilience Patterns Documentation**
+**[📋 Resilience Patterns Implementation Guide](docs/resilience-patterns-implementation.md)**
+
+**Covers:**
+- Registry-based architecture and design principles
+- ResilienceConfig implementation with event listeners  
+- Annotation order importance and best practices
+- Operation-specific configurations in application.yml
+- Fallback mechanisms and graceful degradation
+- Event-driven monitoring and observability
+- Troubleshooting guide and best practices
+
+#### **📖 Health Indicators Documentation**  
+**[🏥 Health Indicators Implementation Guide](docs/health-indicators-implementation.md)**
+
+**Covers:**
+- Individual health indicator implementations
+- HealthIndicatorAggregator design and status logic
+- DeepHealthEndpoint custom actuator endpoint
+- Conditional enablement and configuration
+- Health status determination algorithms
+- Integration with monitoring and alerting systems
+- Troubleshooting health check issues
+
+### 🚀 **Benefits & Guarantees**
+
+#### **Reliability Benefits**
+- **Fault Isolation**: Individual operation failures don't affect others
+- **Automatic Recovery**: Circuit breakers automatically test recovery
+- **Load Protection**: Rate limiters prevent system overload
+- **Resource Protection**: Bulkheads prevent resource exhaustion
+- **Timeout Protection**: Time limiters prevent hanging operations
+
+#### **Operational Benefits**  
+- **Complete Visibility**: Real-time status of all resilience components
+- **Proactive Monitoring**: Early warning indicators for potential issues
+- **Troubleshooting Support**: Detailed health information for debugging
+- **Configuration Flexibility**: Easy tuning for different environments
+- **Integration Ready**: Standard Spring Boot Actuator integration
+
+#### **Performance Guarantees**
+- **Non-Blocking**: All health checks are reactive and non-blocking
+- **Lightweight**: Minimal overhead with efficient metric collection
+- **Scalable**: Linear performance scaling with load
+- **Resource Efficient**: Optimized memory and CPU usage
+
+This comprehensive resilience and health monitoring implementation ensures your Weather Service operates reliably under all conditions while providing complete operational visibility. 🛡️💚
 
 ## Reactive Programming Best Practices
 
