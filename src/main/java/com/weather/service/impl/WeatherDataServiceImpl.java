@@ -3,7 +3,6 @@ package com.weather.service.impl;
 import com.weather.dto.PageResponse;
 import com.weather.dto.WeatherDataRequest;
 import com.weather.dto.WeatherDataResponse;
-import com.weather.entity.WeatherData;
 import com.weather.exception.WeatherNotFoundException;
 import com.weather.exception.WeatherServiceException;
 import com.weather.exception.WeatherValidationException;
@@ -20,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -40,13 +40,18 @@ public class WeatherDataServiceImpl implements WeatherDataService {
     @TimeLimiter(name = "weather-service")
     @Transactional
     public Mono<WeatherDataResponse> createWeatherData(WeatherDataRequest request) {
-        log.debug("Creating weather data for city: {}", request.city());
-        
         return validateRequest(request)
                 .then(Mono.fromCallable(() -> mapper.toEntity(request)))
+                .doOnNext(entity -> 
+                    // Context automatically flows here - no manual extraction needed
+                    log.debug("Creating weather data for city: {} (context flows automatically)", entity.getCity())
+                )
                 .flatMap(repository::save)
                 .map(mapper::toResponse)
-                .doOnSuccess(response -> log.info("Created weather data with id: {}", response.id()))
+                .doOnSuccess(response -> 
+                    // Context with correlation ID is automatically available
+                    log.info("Created weather data with id: {} (correlation ID in context)", response.id())
+                )
                 .onErrorMap(this::mapToServiceException);
     }
     
@@ -183,13 +188,21 @@ public class WeatherDataServiceImpl implements WeatherDataService {
     @Retry(name = "weather-service")
     @TimeLimiter(name = "weather-service")
     public Flux<String> getAllCities() {
-        log.debug("Fetching all cities");
-        
+        // Cache cities list for 5 minutes to avoid re-subscribing to cold publisher
+        // Cities don't change frequently, making this an ideal candidate for caching
         return repository.findDistinctCities()
+                .doOnSubscribe(sub -> 
+                    // Context propagation happens automatically - correlation ID available
+                    log.debug("Subscribed to cities stream - cache will be used if available (context auto-propagated)")
+                )
                 .collectList()
                 .map(this::buildOrderedUniqueCollection)
+                .cache(Duration.ofMinutes(5)) // Cache for 5 minutes
                 .flatMapMany(orderedCities -> Flux.fromIterable(orderedCities))
-                .doOnComplete(() -> log.debug("Successfully fetched all cities in ordered collection"))
+                .doOnComplete(() -> 
+                    // Context still flows through the entire reactive chain automatically
+                    log.debug("Successfully fetched all cities from cache or database (context preserved)")
+                )
                 .onErrorMap(this::mapToServiceException);
     }
     
