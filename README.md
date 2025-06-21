@@ -1223,6 +1223,9 @@ docker run -p 8080:8080 -e SPRING_PROFILES_ACTIVE=local weather-service
 
 This Weather Service implements **enterprise-grade resilience patterns** and **comprehensive health monitoring** to ensure high availability, fault tolerance, and operational visibility.
 
+### 📚 **Resilience and Health Check Implementation Documentation**
+- **[Resilience Patterns Implementation Guide](docs/resilience-patterns-implementation.md)** - Comprehensive resilience patterns implementation in the Weather Service application
+
 ### 🛡️ **Comprehensive Resilience Implementation**
 
 #### **Registry-Based Architecture**
@@ -1288,6 +1291,9 @@ resilience4j:
 - **Graceful Degradation**: All operations have fallback methods
 - **Consistent Error Responses**: Standardized error handling with meaningful messages
 - **Reactive Chain Preservation**: Maintains reactive flow with `Mono.error()`
+
+### 📚 **Health Check Implementation Documentation**
+- **[Health Indicators Implementation Guide](docs/health-indicators-implementation.md)** - Comprehensive health monitoring system implemented in the Weather Service application
 
 ### 🏥 **Comprehensive Health Monitoring System**
 
@@ -1458,6 +1464,8 @@ For comprehensive implementation details, see our dedicated documentation:
 This comprehensive resilience and health monitoring implementation ensures your Weather Service operates reliably under all conditions while providing complete operational visibility. 🛡️💚
 
 ### 📊 **System Architecture & Request Flow**
+
+For detailed resilience patterns and health check monitoring implementation, see:
 
 #### **Complete Request Flow with Resilience Patterns**
 
