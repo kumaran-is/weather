@@ -1,41 +1,70 @@
+# ===================================================================
+# COMMON SPRING BOOT PROPERTIES
+# ===================================================================
 spring:
   application:
     name: weather-service
   main:
     banner-mode: log
   jackson:
-    default-property-inclusion: non_null
+    default-property-inclusion: NON_NULL
     serialization:
       write-dates-as-timestamps: false
     deserialization:
       fail-on-unknown-properties: false
-  r2dbc:
-    url: r2dbc:h2:mem:///weatherdb?DB_CLOSE_DELAY=-1&DB_CLOSE_ON_EXIT=FALSE
-    username: weather_user
-    password: weather_pass
-    pool:
-      initial-size: 5
-      max-size: 20
-      max-idle-time: 30m
-      validation-query: SELECT 1
 
+# ===================================================================
+# R2DBC Database Configuration (Defaults, overridden by profiles)
+# ===================================================================    
+spring.r2dbc:
+  url: r2dbc:h2:mem:///weatherdb?DB_CLOSE_DELAY=-1&DB_CLOSE_ON_EXIT=FALSE
+  username: weather_user
+  password: weather_pass
+  pool:
+    enabled: true
+    initial-size: 5
+    max-size: 20
+    max-idle-time: 30m
+    max-life-time: 1h
+    max-acquire-time: 2s
+    max-create-connection-time: 5s
+    validation-query: SELECT 1 # Generic validation query
+    # For H2: validation-query: SELECT 1
+    # For MSSQL: validation-query: SELECT 1
+    # For PostgreSQL: validation-query: SELECT 1
+    # For MySQL: validation-query: SELECT 1
+  # schema: classpath*:db/schema.sql # For auto-creating schema (H2)
+  # data: classpath*:db/data.sql   # For auto-populating data (H2)
+
+# ===================================================================
+# SERVER CONFIGURATION
+# ===================================================================
 server:
-  port: ${SERVER_PORT:8080}
-  shutdown: graceful
+  port: ${SERVER_PORT:8080} # Standard application port
+  shutdown: graceful # Enable graceful shutdown
+  netty:
+    connection-timeout: 2s # Netty connection timeout
+    idle-timeout: 60s # Netty idle timeout
+  error:
+    whitelabel:
+      enabled: false # Disable Spring Boot's default error page
 
+# ===================================================================
+# ACTUATOR AND METRICS (Management Server)
+# ===================================================================
 management:
   endpoints:
     web:
       base-path: /management
       exposure:
-        include: health,info,metrics,prometheus,deephealth
+        include: health,info,metrics,prometheus,deephealth,loggers,configprops,env,beans,mappings,threaddump,heapdump
   endpoint:
     health:
-      show-details: when_authorized
+      show-details: WHEN_AUTHORIZED
       probes:
         enabled: true
     info:
-      enabled: true
+      access: READ_ONLY
   health:
     livenessstate:
       enabled: true
@@ -44,12 +73,6 @@ management:
     circuitbreakers:
       enabled: true
     ratelimiters:
-      enabled: true
-    retries:
-      enabled: true
-    timelimiters:
-      enabled: true
-    bulkheads:
       enabled: true
   info:
     build:
@@ -62,16 +85,20 @@ management:
     os:
       enabled: true
 
+# ===================================================================
 # OpenAPI/Swagger Configuration
+# ===================================================================
 springdoc:
   api-docs:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
+    display-request-duration: true
     operations-sorter: method
     tags-sorter: alpha
   show-actuator: false
   override-with-generic-response: false
+  # show-actuator: true # This will be profile-specific
 
 # ===================================================================
 # Resilience4j Global Configuration (Defaults)
@@ -219,17 +246,64 @@ resilience4j:
         baseConfig: default
         max-concurrent-calls: 20
 
-# Logging configuration
-logging:
-  config: classpath:log4j2.xml
-  level:
-    com.weather: DEBUG
-    org.springframework.r2dbc: INFO
-    io.r2dbc.h2: INFO
-    org.springframework.security: INFO
-    io.github.resilience4j: DEBUG
+# ===================================================================
+# Security Configuration (Defaults)
+# ===================================================================
+# custom.security block removed due to unknown property error.
+# If you want to use these properties, create a @ConfigurationProperties(prefix = "custom.security") class in your code,
+# or move relevant settings under 'spring.security' or another recognized namespace as per your application's configuration.
+security:
+  # CORS Configuration
+  allowed-origins:
+    - "*" # WARNING: For development only. Restrict in production.
+  allowed-methods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - OPTIONS
+    - HEAD
+  allowed-headers:
+    - Authorization
+    - Content-Type
+    - Accept
+    - X-Requested-With
+    - Origin
+  allow-credentials: true # Be cautious with this in production
+  max-age-seconds: 3600 # 1 hour
 
+  # Security Headers
+  content-security-policy: "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'none';" # Updated for Swagger UI (from agent-service)
+  frame-options: "DENY" # X-Frame-Options
+  xss-protection: "1; mode=block" # X-XSS-Protection
+  content-type-options: "nosniff" # X-Content-Type-Options
+  csrf-enabled: false # CSRF typically handled differently in stateless REST APIs
+
+# ===================================================================
+# LOGGING CONFIGURATION (via Log4j2 - see log4j2.xml)
+# Spring Boot uses Logback by default, but we've excluded it.
+# For Log4j2, ensure log4j2.xml or log4j2-spring.xml is in the classpath.
+# ===================================================================
+logging:
+  config: classpath:log4j2.xml # Explicitly point to log4j2.xml
+  # Levels can also be controlled here if not using a separate log4j2.xml,
+  # but log4j2.xml provides more advanced configuration options.
+  level:
+    root: INFO
+    com.weather: DEBUG
+    org.springframework: INFO
+    org.springframework.web: INFO
+    org.springframework.security: INFO
+    org.springframework.data.r2dbc: INFO
+    io.r2dbc.mssql: INFO
+    io.r2dbc.h2: INFO
+    io.github.resilience4j: INFO
+    reactor.netty: INFO
+    io.netty: INFO
+
+# ===================================================================
 # Custom application info
+# ===================================================================
 info:
   app:
     name: "@project.name@"
@@ -239,7 +313,9 @@ info:
     java:
       version: "@java.version@"
 
+# ===================================================================
 # Weather service specific configuration
+# ===================================================================
 weather:
   metrics:
     # Enable custom reactive metrics collection
@@ -253,8 +329,13 @@ weather:
       # - "/api/auth/"
       # - "/api/v2/"
       # - "/admin/api/"
-
+# ===================================================================
 # Application properties for banner and info
+# ===================================================================
 application:
   title: "@project.name@"
   version: "@project.version@"
+
+# ===================================================================
+# Custom Application Properties (if any)
+# ===================================================================
