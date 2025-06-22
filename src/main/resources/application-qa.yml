@@ -10,6 +10,28 @@ server:
     h2c-max-content-length: 6291456          # 6MB max content length for QA
     validate-headers: true                   # Always validate in QA environment
 
+# ==================================================================================
+# QA Environment Netty Configuration
+# Industry Standard: Load testing and performance validation
+# Target: 100-500 concurrent users, stress testing
+# ==================================================================================
+
+# JVM arguments for QA environment
+# Recommended JVM flags for QA:
+# -Dreactor.netty.ioWorkerCount=6           # Event loop threads (CPU cores × 0.75)
+# -Dreactor.netty.pool.maxConnections=500   # Large connection pool for load testing
+# -Dreactor.netty.pool.maxIdleTime=90000    # 1.5 minutes idle timeout
+# -Dreactor.netty.pool.maxLifeTime=300000   # 5 minutes connection lifetime
+# -Dreactor.netty.pool.pendingAcquireTimeout=45000  # 45 seconds acquire timeout
+# -Dreactor.netty.pool.pendingAcquireMaxCount=800   # Large queue for load spikes
+
+# QA environment calculations:
+# CPU Cores: 8 (QA server)
+# Event Loop Threads: 6 (CPU cores × 0.75 for load testing stability)
+# Max Connections: 500 (CPU cores × 62.5, optimized for concurrent load)
+# Worker Threads: 12 (auto-detected, can handle blocking operations)
+# Reasoning: Optimized for load testing scenarios and performance validation
+
 spring:
 # ==================================================================================
 # QA R2DBC Database Configuration

@@ -50,13 +50,35 @@ server:
   shutdown: graceful # Enable graceful shutdown
   netty:
     # ===================================================================
-    # Default Netty Configuration (Development Optimized)
+    # Base Netty Configuration (Suitable for most environments)
+    # Industry Standards Applied
     # ===================================================================
-    connection-timeout: 2s                    # TCP connection timeout
-    idle-timeout: 60s                        # Channel idle timeout
-    max-initial-line-length: 4096            # Max HTTP initial line length (4KB)
-    h2c-max-content-length: 0                # H2C max content length (0 = unlimited)
-    validate-headers: true                   # Validate HTTP headers
+    connection-timeout: 2s                    # TCP connection timeout (default baseline)
+    idle-timeout: 60s                        # Channel idle timeout (conservative default)
+    max-initial-line-length: 4096            # Max HTTP initial line length (4KB - standard)
+    h2c-max-content-length: 0                # H2C max content length (0 = unlimited for dev)
+    validate-headers: true                   # Validate HTTP headers (security best practice)
+    
+    # ===================================================================
+    # Industry Standard Connection & Thread Pool Guidelines
+    # ===================================================================
+    # These configurations are applied via JVM arguments per environment:
+    #
+    # For I/O Intensive Applications (like Weather Service REST API):
+    # - Event Loop Threads = CPU Cores × 2 (optimal for non-blocking I/O)
+    # - Max Connections = CPU Cores × 100-200 (concurrent user capacity)
+    # - Worker Threads = Auto-detected by Spring Boot (typically CPU × 4-8)
+    #
+    # Memory Considerations:
+    # - ~2MB memory overhead per 100 connections
+    # - ~1MB per event loop thread
+    # - Total memory = (connections/100 × 2MB) + (threads × 1MB)
+    #
+    # Application Type Multipliers:
+    # - REST APIs (80% I/O): CPU × 2 for event loops, CPU × 150 for connections
+    # - Database Heavy (90% I/O): CPU × 2-3 for event loops, CPU × 200 for connections  
+    # - CPU Intensive (80% CPU): CPU × 1 for event loops, CPU × 50 for connections
+    # - Mixed Workload (50/50): CPU × 1.5 for event loops, CPU × 100 for connections
   error:
     whitelabel:
       enabled: false # Disable Spring Boot's default error page

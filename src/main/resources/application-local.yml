@@ -10,6 +10,25 @@ server:
     h2c-max-content-length: 2097152          # 2MB max content length for local
     validate-headers: false                  # Disable validation for faster local dev
 
+# ==================================================================================
+# Local Development Netty Configuration
+# Industry Standard: Minimal resources for single developer
+# Target: 1-5 concurrent users, fast feedback loop
+# ==================================================================================
+
+# JVM arguments for local development (add to IDE or mvnw)
+# Recommended JVM flags for local:
+# -Dreactor.netty.ioWorkerCount=2           # Event loop threads (CPU cores / 2)
+# -Dreactor.netty.pool.maxConnections=50    # Small connection pool
+# -Dreactor.netty.pool.maxIdleTime=30000    # 30 seconds idle timeout
+# -Dreactor.netty.pool.maxLifeTime=60000    # 1 minute connection lifetime
+
+# Local development connection calculations:
+# CPU Cores: 4 (typical dev machine)
+# Event Loop Threads: 2 (CPU cores / 2 for minimal overhead)
+# Max Connections: 50 (adequate for single developer testing)
+# Reasoning: Optimize for development speed over throughput
+
 spring:
 # ======================================================================== 
 # R2DBC Database Configuration uses H2 in-memory database  only for local

@@ -2057,18 +2057,27 @@ Netty is the high-performance, asynchronous event-driven network framework that 
 
 #### **Environment-Optimized Settings**
 
-| Environment | Connection Timeout | Idle Timeout | Max Content | Use Case |
-|-------------|-------------------|--------------|-------------|----------|
-| **Local** | 2s | 60s | 2MB | Single developer debugging |
-| **Dev** | 3s | 120s | 4MB | Team development & testing |
-| **QA** | 4s | 180s | 6MB | Load testing & validation |
-| **Production** | 5s | 300s | 8MB | High-throughput live traffic |
+| Environment | Connection Timeout | Idle Timeout | Max Content | Event Loops | Max Connections | Target Users |
+|-------------|-------------------|--------------|-------------|-------------|----------------|--------------|
+| **Local** | 2s | 60s | 2MB | 2 | 50 | 1-5 |
+| **Dev** | 3s | 120s | 4MB | 4 | 200 | 10-50 |
+| **QA** | 4s | 180s | 6MB | 6 | 500 | 100-500 |
+| **Production** | 5s | 300s | 8MB | 16 | 1000 | 1000+ |
+
+### **📊 Industry Standard Calculations Applied:**
+
+**For Weather Service (I/O Intensive REST API - 80% I/O, 20% CPU):**
+- **Event Loop Threads**: `CPU Cores × 2` (optimal for non-blocking I/O)
+- **Max Connections**: `CPU Cores × 125` (concurrent user capacity)  
+- **Memory Overhead**: `~2MB per 100 connections + 1MB per thread`
 
 #### **Key Performance Benefits**
 ✅ **High Concurrency** - Handle thousands of connections with minimal threads  
 ✅ **Low Latency** - Non-blocking I/O reduces response times  
 ✅ **Memory Efficiency** - Optimized buffer management and connection reuse  
 ✅ **Environment Scaling** - Progressive configuration from dev to production  
+✅ **Auto-Configuration** - Spring Boot optimizes threads based on CPU cores  
+✅ **Production Ready** - No custom tuning needed for most applications  
 
 #### **Security Features**
 - **Header Validation**: Enabled in dev/qa/prod (disabled in local for speed)
@@ -2076,9 +2085,10 @@ Netty is the high-performance, asynchronous event-driven network framework that 
 - **Connection Timeouts**: Prevent resource exhaustion attacks
 - **Progressive Hardening**: More restrictive settings in higher environments
 
-#### **Example Configuration**
+#### **Configuration Examples**
+
+**application-prod.yml (Server Settings):**
 ```yaml
-# Production-optimized settings
 server:
   netty:
     connection-timeout: 5s                    # Extended for production networks
@@ -2088,16 +2098,42 @@ server:
     validate-headers: true                   # Always validate for security
 ```
 
+**JVM Arguments (Applied via startup scripts):**
+```bash
+# Production JVM arguments for optimal performance
+-Dreactor.netty.ioWorkerCount=16                    # Event loop threads (CPU × 2)
+-Dreactor.netty.pool.maxConnections=1000            # Production connection pool
+-Dreactor.netty.pool.maxIdleTime=120000             # 2 minutes idle timeout
+-Dreactor.netty.pool.maxLifeTime=600000             # 10 minutes lifetime
+-Dreactor.netty.pool.pendingAcquireTimeout=60000    # 1 minute acquire timeout
+-Dreactor.netty.pool.evictInBackground=120000       # Background cleanup
+```
+
+**How to Apply JVM Arguments:**
+```bash
+# Maven
+./mvnw spring-boot:run -Dspring-boot.run.jvmArguments="-Dreactor.netty.ioWorkerCount=16"
+
+# Docker
+ENV JAVA_OPTS="-Dreactor.netty.ioWorkerCount=16"
+
+# Kubernetes
+env:
+  - name: JAVA_OPTS
+    value: "-Dreactor.netty.ioWorkerCount=16"
+```
+
 #### **📚 Complete Documentation**
 For detailed configuration, performance tuning, and troubleshooting:
 **[🔗 Netty Configuration Guide](docs/NETTY-CONFIGURATION-GUIDE.md)**
 
 **Covers:**
 - Environment-specific optimization strategies
-- Performance tuning and monitoring
+- Connection pool sizing and best practices
+- Thread pool configuration and tuning
+- Performance monitoring and troubleshooting
 - Security configuration best practices
-- Advanced settings and troubleshooting
-- Connection pool optimization
+- Industry standards and benchmarks
 
 ---
 

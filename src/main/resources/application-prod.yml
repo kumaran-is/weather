@@ -10,6 +10,37 @@ server:
     h2c-max-content-length: 8388608          # 8MB max content length
     validate-headers: true                   # Always validate in production
 
+# ==================================================================================
+# Production Environment Netty Configuration
+# Industry Standard: High-performance production workloads
+# Target: 1000+ concurrent users, maximum throughput and reliability
+# ==================================================================================
+
+# JVM arguments for production environment
+# Recommended JVM flags for production:
+# -Dreactor.netty.ioWorkerCount=16          # Event loop threads (CPU cores × 2)
+# -Dreactor.netty.pool.maxConnections=1000  # Large connection pool for production
+# -Dreactor.netty.pool.maxIdleTime=120000   # 2 minutes idle timeout (connection reuse)
+# -Dreactor.netty.pool.maxLifeTime=600000   # 10 minutes connection lifetime
+# -Dreactor.netty.pool.pendingAcquireTimeout=60000   # 1 minute acquire timeout
+# -Dreactor.netty.pool.pendingAcquireMaxCount=2000   # Large queue for traffic spikes
+# -Dreactor.netty.pool.evictInBackground=120000      # Background cleanup every 2 minutes
+
+# Production environment calculations:
+# CPU Cores: 8 (production server)
+# Event Loop Threads: 16 (CPU cores × 2, optimal for I/O intensive workloads)
+# Max Connections: 1000 (CPU cores × 125, high-capacity for production traffic)
+# Worker Threads: 16-32 (auto-detected based on workload)
+# 
+# Industry standards for Weather Service (I/O intensive API):
+# - REST API workload: 80% I/O, 20% CPU
+# - Thread multiplier: CPU × 2 for event loops (non-blocking I/O)
+# - Connection multiplier: CPU × 100-200 for concurrent users
+# - Memory overhead: ~2MB per 100 connections
+# 
+# Reasoning: Optimized for high-throughput production traffic with proper
+# resource management and connection lifecycle handling
+
 spring:
 # ==================================================================================
 # Production R2DBC Database Configuration

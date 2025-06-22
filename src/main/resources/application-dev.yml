@@ -10,6 +10,27 @@ server:
     h2c-max-content-length: 4194304          # 4MB max content length
     validate-headers: true                   # Validate headers for debugging
 
+# ==================================================================================
+# Development Environment Netty Configuration
+# Industry Standard: Team development with moderate load
+# Target: 10-50 concurrent users, integration testing
+# ==================================================================================
+
+# JVM arguments for development environment
+# Recommended JVM flags for dev:
+# -Dreactor.netty.ioWorkerCount=4           # Event loop threads (CPU cores / 2)
+# -Dreactor.netty.pool.maxConnections=200   # Medium connection pool
+# -Dreactor.netty.pool.maxIdleTime=60000    # 1 minute idle timeout
+# -Dreactor.netty.pool.maxLifeTime=120000   # 2 minutes connection lifetime
+# -Dreactor.netty.pool.pendingAcquireTimeout=30000  # 30 seconds acquire timeout
+
+# Development environment calculations:
+# CPU Cores: 8 (dev server)
+# Event Loop Threads: 4 (CPU cores / 2 for balanced I/O)
+# Max Connections: 200 (CPU cores × 25, suitable for team development)
+# Worker Threads: 8 (auto-detected by Spring Boot)
+# Reasoning: Balance between performance and resource usage for team dev
+
 spring:
 # ================================================================================ 
 # R2DBC Database Configuration uses real database for dev and higher environments
