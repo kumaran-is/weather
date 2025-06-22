@@ -1,5 +1,21 @@
 # Health Indicators Implementation Guide
 
+## 📑 Table of Contents
+- [Overview](#overview)
+- [Architecture & Design Approach](#architecture--design-approach)
+- [Implementation Details](#implementation-details)
+  - [Custom ReactiveHealthIndicator Interface](#1-custom-reactivehealthindicator-interface)
+  - [Individual Health Indicators](#2-individual-health-indicators)
+  - [Health Indicator Aggregator](#3-health-indicator-aggregator)
+  - [Deep Health Endpoint](#4-deep-health-endpoint)
+  - [Configuration Properties](#5-configuration-properties)
+- [Health Check Endpoints](#health-check-endpoints)
+- [Health Status Logic](#health-status-logic)
+- [Monitoring and Observability](#monitoring-and-observability)
+- [Configuration Best Practices](#configuration-best-practices)
+- [Troubleshooting Guide](#troubleshooting-guide)
+- [Integration with External Monitoring](#integration-with-external-monitoring)
+
 ## Overview
 
 This document describes the comprehensive health monitoring system implemented in the Weather Service application. We have built a modular, aggregated health checking system that provides detailed visibility into application health, database connectivity, and all resilience patterns.

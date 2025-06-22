@@ -1,5 +1,20 @@
 # Resilience Patterns Implementation Guide
 
+## 📑 Table of Contents
+- [Overview](#overview)
+- [Architecture & Design Approach](#architecture--design-approach)
+- [Implementation Details](#implementation-details)
+  - [Registry Configuration](#1-registry-configuration-resilienceconfigjava)
+  - [Operation-Specific Constants](#2-operation-specific-constants)
+  - [Annotation Order & Implementation](#3-annotation-order--implementation)
+  - [Configuration in application.yml](#4-configuration-in-applicationyml)
+  - [Fallback Implementation](#5-fallback-implementation)
+  - [Event Listeners for Observability](#6-event-listeners-for-observability)
+- [Database Operations Coverage](#database-operations-coverage)
+- [Benefits of This Implementation](#benefits-of-this-implementation)
+- [Configuration Best Practices](#configuration-best-practices)
+- [Troubleshooting Guide](#troubleshooting-guide)
+
 ## Overview
 
 This document describes the comprehensive resilience patterns implementation in the Weather Service application. We have implemented a robust, registry-based approach that provides circuit breaking, retry mechanisms, rate limiting, timeout handling, and bulkhead isolation for all database operations.

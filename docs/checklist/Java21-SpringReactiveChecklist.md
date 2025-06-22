@@ -1,11 +1,21 @@
-You are a senior principal having 25 years experience in building REST services using Java  and Spring Boot WebFlux ecosystem and tech stack. Can you analyze this code base weather service and makesure it follows below best practices checklist.Porvide Analysis Report Specific Recommendations, Final Assessment, Checklist Compliance Score, Conclusion
+# ✅ **Java 21 + Spring WebFlux Reactive REST Checklist**
 
-
-Below is a **comprehensive best practices checklist** for building **non-blocking, reactive REST services using Java 21 and Spring Boot WebFlux 3.4.5**. This will help ensure your application stays **fully reactive**, scalable, and performant.
-
----
-
-## ✅ **Java 21 + Spring WebFlux Reactive REST Checklist**
+## 📑 Table of Contents
+- [General Reactive Programming Principles](#general-reactive-programming-principles)
+- [Java 21 Specifics](#java-21-specifics)
+- [Spring WebFlux Controller Layer](#spring-webflux-controller-layer)
+- [Data Access Layer](#data-access-layer)
+- [WebClient for External Calls](#webclient-for-external-calls)
+- [Threading & Schedulers](#threading--schedulers)
+- [Configuration & Properties](#configuration--properties)
+- [Performance & Optimization](#performance--optimization)
+- [Testing & Debugging](#testing--debugging)
+- [Monitoring & Observability](#monitoring--observability)
+- [Security & Resilience](#security--resilience)
+- [Clean Code & Design](#clean-code--design)
+- [Project Setup](#project-setup)
+- [Pro-Tips](#pro-tips)
+- [DON'T Checklist - Common Anti-Patterns to Avoid](#dont-checklist---common-anti-patterns-to-avoid)
 
 ### 🔁 **General Reactive Programming Principles**
 

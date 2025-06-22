@@ -1,4 +1,18 @@
-# Redis Cache Integration Checklist for Java 21 + Spring WebFlux 3.4.5
+# ✅ **Redis Cache Integration Checklist for Java 21 + Spring WebFlux 3.4.5**
+
+## 📑 Table of Contents
+- [1. Dependency Setup](#1-dependency-setup)
+- [2. Configuration (application.yml/properties)](#2-configuration-applicationymlproperties)
+- [3. Bean Configuration](#3-bean-configuration)
+- [4. Reactive Usage (Service Layer)](#4-reactive-usage-service-layer)
+- [5. Cache Population Strategy](#5-cache-population-strategy)
+- [6. Error Handling & Resilience](#6-error-handling--resilience)
+- [7. Key Management Best Practices](#7-key-management-best-practices)
+- [8. Testing](#8-testing)
+- [9. Observability & Monitoring](#9-observability--monitoring)
+- [10. Common Pitfalls to Avoid](#10-common-pitfalls-to-avoid)
+- [Bonus: Optional Enhancements](#bonus-optional-enhancements)
+- [Java 21 Specific Enhancements](#java-21-specific-enhancements)
 
 Here's a tailored **checklist for integrating Redis Cache in a fully reactive Spring Boot WebFlux 3.4.5 REST application using Java 21**, ensuring you maintain **non-blocking**, **reactive end-to-end flow**, and follow **modern caching best practices**.
 
@@ -378,5 +392,3 @@ Here's a tailored **checklist for integrating Redis Cache in a fully reactive Sp
   ```
 
 ---
-
-Would you like a **starter code example** or a **Markdown version of this checklist** for GitHub README or internal docs?

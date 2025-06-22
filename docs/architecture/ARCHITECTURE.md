@@ -1,5 +1,17 @@
 # Weather Service Architecture Documentation
 
+## 📑 Table of Contents
+- [Overview](#overview)
+- [Architecture Summary](#architecture-summary)
+- [Key Architectural Decisions](#key-architectural-decisions)
+- [Technology Stack](#technology-stack)
+- [Performance Characteristics](#performance-characteristics)
+- [Security Architecture](#security-architecture)
+- [Deployment Architecture](#deployment-architecture)
+- [Development Guidelines](#development-guidelines)
+- [Future Architecture Considerations](#future-architecture-considerations)
+- [Related Documentation](#related-documentation)
+
 ## Overview
 
 The Weather Service is a modern, reactive microservice built with Spring Boot 3.4.5 and Java 21. It provides RESTful APIs for managing weather data with high-performance, scalable architecture designed for cloud-native deployment.
