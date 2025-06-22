@@ -45,7 +45,7 @@ public record WeatherDataRequest(
     String windDirection,
     
     @Size(max = 50, message = "Weather condition must not exceed 50 characters")
-    @Schema(description = "Weather condition", example = "Clear")
+    @Schema(description = "Weather condition. Valid values: clear, sunny, cloudy, overcast, rainy, stormy, snowy, foggy, windy, humid, dry", example = "clear")
     String weatherCondition,
     
     @Size(max = 500, message = "Description must not exceed 500 characters")
@@ -53,6 +53,6 @@ public record WeatherDataRequest(
     String description,
     
     @NotNull(message = "Recorded time is required")
-    @Schema(description = "When the weather was recorded", example = "2024-01-15T10:00:00", required = true)
+    @Schema(description = "When the weather was recorded", example = "2025-06-20T08:00:00", required = true)
     LocalDateTime recordedAt
 ) {}
