@@ -35,6 +35,7 @@ A reactive REST service for managing weather data, built with Java 21, Spring Bo
 - [Resilience Patterns & Health Monitoring](#resilience-patterns--health-monitoring)
 - [Reactive Programming Best Practices](#reactive-programming-best-practices)
 - [Architecture Documentation](#architecture-documentation)
+- [BlockHound Integration](#blockhound-integration)
 - [H2 Console Setup for Spring Boot WebFlux - Local Development Guide](#h2-console-setup-for-spring-boot-webflux---local-development-guide)
 - [Checklist](#checklist)
 
@@ -1994,6 +1995,55 @@ curl http://localhost:8080/management/deephealth
 - **Metrics**: Real-time reactive stream monitoring
 
 This reactive implementation ensures your weather service can handle enterprise-scale loads while maintaining optimal resource utilization and providing comprehensive observability.
+
+## BlockHound Integration
+
+### 🛡️ **Reactive Code Compliance with BlockHound**
+
+The Weather Service integrates **BlockHound** for detecting blocking calls in reactive contexts, ensuring your application remains truly non-blocking and performant.
+
+#### **What is BlockHound?**
+BlockHound is a Java agent that detects blocking operations from non-blocking threads, helping maintain the reactive programming model's integrity.
+
+#### **Configuration & Features**
+- **Environment-Aware**: Active in `local`, `dev`, `qa` - disabled in `prod` for performance
+- **Warning-Only Mode**: Logs violations instead of crashing the application
+- **Grafana Integration**: Special log tags for monitoring and alerting
+- **Comprehensive Allowlist**: Pre-configured safe operations for frameworks
+
+#### **Example Log Output**
+```log
+WARN  c.w.c.BlockHoundConfig - [BLOCKHOUND_VIOLATION] 🚫 REACTIVE VIOLATION: Blocking call detected: java.lang.Thread.sleep
+WARN  c.w.c.BlockHoundConfig - marker=BLOCKHOUND_VIOLATION severity=HIGH component=reactive-compliance method=java.lang.Thread.sleep
+```
+
+#### **Grafana Dashboard Queries**
+```promql
+# Count violations over time
+sum(rate(log_messages_total{message=~".*BLOCKHOUND_VIOLATION.*"}[5m]))
+
+# Top offending methods
+topk(10, count by (method)({job="weather-service"} |= "marker=BLOCKHOUND_VIOLATION"))
+```
+
+#### **Team Benefits**
+✅ **Early Detection** - Catch reactive violations during development  
+✅ **Educational Tool** - Learn reactive programming patterns  
+✅ **Performance Assurance** - Maintain non-blocking guarantees  
+✅ **Production Safety** - Zero performance impact in production  
+
+#### **📚 Complete Documentation**
+For comprehensive setup, configuration, and troubleshooting:
+**[🔗 BlockHound Integration Guide](docs/BLOCKHOUND-GUIDE.md)**
+
+**Covers:**
+- Detailed configuration and setup
+- Common violations and reactive solutions
+- Grafana dashboard integration
+- Monitoring and alerting strategies
+- Best practices and troubleshooting
+
+---
 
 ## Architecture Documentation
 
