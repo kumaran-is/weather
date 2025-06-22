@@ -51,32 +51,39 @@ public class ReactiveContextLogger {
      * Populate Log4j2 MDC with reactive context values.
      */
     public static void populateMDCFromContext(ContextView context) {
-        // Clear any existing MDC values first
-        ThreadContext.clearAll();
+        // Check for pre-stored threadContext map first (from WebFilter)
+        context.getOrEmpty("threadContext")
+            .ifPresent(contextData -> {
+                if (contextData instanceof java.util.Map) {
+                    @SuppressWarnings("unchecked")
+                    java.util.Map<String, String> data = (java.util.Map<String, String>) contextData;
+                    ThreadContext.putAll(data);
+                    return; // Exit early if we found the pre-stored context
+                }
+            });
         
-        // Extract and set correlation ID
+        // Fallback to individual context extraction with correct key names for log4j2.xml
         context.getOrEmpty(ReactiveContextConfig.CORRELATION_ID_KEY)
-                .ifPresent(correlationId -> ThreadContext.put("correlationId", correlationId.toString()));
+                .ifPresent(correlationId -> ThreadContext.put("correlation_id", correlationId.toString()));
 
         // Extract and set user context
         context.getOrEmpty(ReactiveContextConfig.USER_CONTEXT_KEY)
                 .ifPresent(userContext -> {
                     if (userContext instanceof ReactiveContextConfig.UserContext user) {
-                        ThreadContext.put("userId", user.userId());
-                        ThreadContext.put("username", user.username());
+                        ThreadContext.put("user_id", user.userId());
                     }
                 });
 
         // Extract and set request timing if available
         context.getOrEmpty(ReactiveContextConfig.REQUEST_START_TIME_KEY)
-                .ifPresent(startTime -> ThreadContext.put("requestStartTime", startTime.toString()));
+                .ifPresent(startTime -> ThreadContext.put("request_start_time", startTime.toString()));
 
-        // Extract and set request metadata if available
+        // Extract and set request metadata if available  
         context.getOrEmpty("request.path")
-                .ifPresent(path -> ThreadContext.put("requestPath", path.toString()));
+                .ifPresent(path -> ThreadContext.put("request_path", path.toString()));
         
         context.getOrEmpty("request.method")
-                .ifPresent(method -> ThreadContext.put("requestMethod", method.toString()));
+                .ifPresent(method -> ThreadContext.put("request_method", method.toString()));
     }
 
     /**

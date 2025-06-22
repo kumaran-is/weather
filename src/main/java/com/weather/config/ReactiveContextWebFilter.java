@@ -36,6 +36,20 @@ public class ReactiveContextWebFilter implements WebFilter {
         
         // Generate correlation ID for this request
         String correlationId = contextPropagation.generateCorrelationId();
+        String userId = "anonymous";
+        
+        // Capture the initial ThreadContext state
+        final java.util.Map<String, String> contextData = java.util.Map.of(
+            "correlation_id", correlationId,
+            "user_id", userId,
+            "request_path", requestPath,
+            "request_method", method
+        );
+        
+        // Set ThreadContext immediately for this request
+        ThreadContext.putAll(contextData);
+        
+        log.debug("Processing request {} {}", method, requestPath);
         
         return chain.filter(exchange)
                 .contextWrite(context -> {
@@ -45,33 +59,32 @@ public class ReactiveContextWebFilter implements WebFilter {
                             .put(ReactiveContextConfig.REQUEST_START_TIME_KEY, System.currentTimeMillis())
                             .put(ReactiveContextConfig.USER_CONTEXT_KEY, ReactiveContextConfig.UserContext.anonymous())
                             .put("request.path", requestPath)
-                            .put("request.method", method);
+                            .put("request.method", method)
+                            .put("threadContext", contextData); // Store context data for propagation
                 })
-                .doFinally(signalType -> {
-                    // Clear ThreadContext when the reactive chain completes
-                    ThreadContext.clearAll();
-                })
-                .doOnSubscribe(subscription -> {
-                    // Populate ThreadContext for the initial subscription
-                    ThreadContext.put("correlation_id", correlationId);
-                    ThreadContext.put("user_id", "anonymous");
-                    ThreadContext.put("request_path", requestPath);
-                    ThreadContext.put("request_method", method);
-                    log.debug("Processing request {} {}", method, requestPath);
+                .doOnEach(signal -> {
+                    // Restore ThreadContext on every signal emission across different threads
+                    ThreadContext.putAll(contextData);
                 })
                 .doOnSuccess(unused -> {
+                    // Ensure ThreadContext is set for logging
+                    ThreadContext.putAll(contextData);
                     if (isApiEndpoint && startTime != null) {
                         metricsCollector.stopTimer(startTime, "api_request", "success", requestPath, method);
                     }
                     log.debug("Request {} {} completed successfully", method, requestPath);
                 })
                 .doOnError(error -> {
+                    // Ensure ThreadContext is set for logging
+                    ThreadContext.putAll(contextData);
                     if (isApiEndpoint && startTime != null) {
                         metricsCollector.stopTimer(startTime, "api_request", "error", requestPath, method);
                     }
                     log.error("Request {} {} failed: {}", method, requestPath, error.getMessage(), error);
+                })
+                .doFinally(signalType -> {
+                    // Clear ThreadContext when the reactive chain completes
+                    ThreadContext.clearAll();
                 });
     }
-    
-    
 }
