@@ -18,7 +18,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
@@ -206,7 +205,7 @@ public class WeatherDataServiceImpl implements WeatherDataService {
     @Retry(name = GET_ALL_CITIES_DB)
     @CircuitBreaker(name = GET_ALL_CITIES_DB, fallbackMethod = "getAllCitiesFallback")
     @Bulkhead(name = GET_ALL_CITIES_DB)
-    public Flux<String> getAllCities() {
+    public Mono<List<String>> getAllCities() {
         // Cache cities list for 5 minutes to avoid re-subscribing to cold publisher
         // Cities don't change frequently, making this an ideal candidate for caching
         return repository.findDistinctCities()
@@ -217,10 +216,9 @@ public class WeatherDataServiceImpl implements WeatherDataService {
                 .collectList()
                 .map(this::buildOrderedUniqueCollection)
                 .cache(Duration.ofMinutes(5)) // Cache for 5 minutes
-                .flatMapMany(orderedCities -> Flux.fromIterable(orderedCities))
-                .doOnComplete(() -> 
+                .doOnSuccess(cities -> 
                     // Context still flows through the entire reactive chain automatically
-                    log.debug("Successfully fetched all cities from cache or database (context preserved)")
+                    log.debug("Successfully fetched {} cities from cache or database (context preserved)", cities.size())
                 )
                 .onErrorMap(this::mapToServiceException);
     }
@@ -296,12 +294,12 @@ public class WeatherDataServiceImpl implements WeatherDataService {
         );
     }
     
-    // Utility method for handling unique ordered cities using SequencedCollection
-    private SequencedCollection<String> buildOrderedUniqueCollection(List<String> cities) {
+    // Utility method for handling unique ordered cities returning List for JSON serialization
+    private List<String> buildOrderedUniqueCollection(List<String> cities) {
         // LinkedHashSet maintains insertion order while ensuring uniqueness
         SequencedCollection<String> orderedCities = new LinkedHashSet<>();
         orderedCities.addAll(cities);
-        return orderedCities;
+        return new ArrayList<>(orderedCities);
     }
     
     private Throwable mapToServiceException(Throwable throwable) {
@@ -375,8 +373,8 @@ public class WeatherDataServiceImpl implements WeatherDataService {
         return Mono.error(new WeatherServiceException("Weather service is temporarily unavailable"));
     }
     
-    public Flux<String> getAllCitiesFallback(Exception ex) {
+    public Mono<List<String>> getAllCitiesFallback(Exception ex) {
         log.error("Circuit breaker activated for getAllCities", ex);
-        return Flux.error(new WeatherServiceException("Weather service is temporarily unavailable"));
+        return Mono.error(new WeatherServiceException("Weather service is temporarily unavailable"));
     }
 }

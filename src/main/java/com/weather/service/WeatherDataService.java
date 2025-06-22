@@ -3,10 +3,10 @@ package com.weather.service;
 import com.weather.dto.PageResponse;
 import com.weather.dto.WeatherDataRequest;
 import com.weather.dto.WeatherDataResponse;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public interface WeatherDataService {
     
@@ -26,5 +26,5 @@ public interface WeatherDataService {
     
     Mono<Void> deleteWeatherData(Long id);
     
-    Flux<String> getAllCities();
+    Mono<List<String>> getAllCities();
 }
