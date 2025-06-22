@@ -5,6 +5,115 @@ All notable changes to the Weather Service project will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2025-06-22
+
+### Added
+
+#### 🛡️ Reactive Code Compliance
+- **BlockHound Integration** - Java agent for detecting blocking calls in reactive contexts
+  - Environment-aware configuration (active in local, dev, qa - disabled in production)
+  - Warning-only mode - logs violations instead of crashing the application
+  - Comprehensive allowlist for framework operations (Spring, Jackson, Log4j2)
+  - Grafana integration with special log tags `[BLOCKHOUND_VIOLATION]` for monitoring
+  - Structured logging with severity markers for alerting systems
+
+#### 🚀 Industry-Standard Netty Configuration
+- **Environment-Optimized Netty Settings** with progressive scaling across environments
+  - **Local**: 2s timeout, 50 connections, minimal threading for single developer
+  - **Dev**: 3s timeout, 200 connections, moderate threading for team development  
+  - **QA**: 4s timeout, 500 connections, higher threading for load testing
+  - **Production**: 5s timeout, 1000 connections, auto-optimized threading for live traffic
+- **Connection Pool Management** with industry-standard calculations
+  - I/O intensive REST API optimization (Event Loop = CPU × 2, Connections = CPU × 125)
+  - Memory overhead calculations (~2MB per 100 connections + 1MB per thread)
+  - Environment-specific JVM arguments for optimal performance tuning
+- **Security Hardening** with progressive validation across environments
+  - Header validation enabled in dev/qa/prod (disabled in local for speed)
+  - Content length limits appropriate for each environment (2MB → 8MB)
+  - Connection timeout protection against resource exhaustion attacks
+
+#### 📊 Complete Environment Profile System
+- **application-qa.yml** - QA environment configuration for load testing and validation
+- **application-prod.yml** - Production environment with high-performance optimizations
+- **Enhanced environment profiles** with detailed industry-standard comments and calculations
+- **JVM optimization flags** for Java 21 compatibility and BlockHound integration
+
+#### 📚 Comprehensive Technical Documentation
+- **BLOCKHOUND-GUIDE.md** (45+ sections) - Complete BlockHound setup and usage guide
+  - Installation, configuration, and troubleshooting
+  - Common violations and reactive programming solutions
+  - Grafana dashboard integration and alerting strategies
+  - Performance monitoring and team education guidelines
+- **NETTY-CONFIGURATION-GUIDE.md** (14 major sections) - Industry-standard Netty optimization
+  - Environment-specific performance tuning strategies
+  - Connection pool sizing formulas and best practices
+  - Thread pool configuration for different application types
+  - Security considerations and monitoring integration
+- **Enhanced Java 21 Reactive Checklist** with BlockHound integration guidelines
+- **Updated Project Structure** documentation reflecting all recent additions
+
+#### 🔧 Configuration Enhancements
+- **Java 21 + BlockHound Compatibility** with required JVM flags in Maven configuration
+  - `-XX:+AllowRedefinitionToAddDeleteMethods` for Spring Boot and Surefire plugins
+  - Proper integration with Maven wrapper and IDE configurations
+- **Industry-Standard Configuration Comments** explaining calculation methodologies
+  - CPU core-based threading calculations for different application types
+  - Memory overhead formulas and resource planning guidelines
+  - Performance benchmarking targets for each environment
+
+### Enhanced
+
+#### 🏗️ Architecture Improvements
+- **Reactive Context Logging Utility** for enhanced debugging and monitoring
+- **Environment-Progressive Configuration** with clear scaling from development to production
+- **Documentation Structure** with comprehensive technical guides and best practices
+
+#### 📈 Performance Optimizations
+- **Auto-Detection Threading** for production environments (optimal hardware utilization)
+- **Connection Lifecycle Management** with proper idle timeouts and background cleanup
+- **Resource Scaling Guidelines** based on industry standards and application characteristics
+
+#### 🔍 Monitoring & Observability
+- **BlockHound Violation Tracking** with Grafana dashboard queries and alerting
+- **Netty Connection Pool Metrics** for performance monitoring and capacity planning
+- **Thread Pool Utilization Monitoring** with performance indicators and tuning guidance
+
+### Technical Specifications
+
+#### Updated Technology Stack
+- **Java 21** with BlockHound agent integration and JVM optimization flags
+- **Spring Boot 3.4.5** with industry-standard Netty configuration
+- **BlockHound 1.0.13.RELEASE** for reactive code compliance
+- **Reactor Netty** with optimized connection pooling and threading
+
+#### Configuration Standards Applied
+- **I/O Intensive Application Optimization** (80% I/O, 20% CPU) for REST API workloads
+- **Industry Connection Pool Formulas** with progressive scaling across environments
+- **Security Progressive Hardening** from development speed to production security
+- **Memory Management** with calculated overhead and resource planning
+
+### Documentation
+
+#### New Technical Guides
+- **Complete BlockHound Integration Guide** - 45+ sections covering all aspects
+- **Netty Performance Configuration Guide** - Industry standards and optimization strategies
+- **Environment-Specific Setup Instructions** with detailed calculations and reasoning
+
+#### Enhanced Development Resources
+- **Updated Project Structure** reflecting current comprehensive state
+- **Industry Standard Examples** with real-world configuration scenarios
+- **Performance Tuning Guidelines** based on application characteristics and environment needs
+
+### Migration Notes
+- **Version Bump**: 1.0.0 → 1.1.0 reflecting significant new features and enhancements
+- **Java 21 Compatibility**: Requires JVM flag `-XX:+AllowRedefinitionToAddDeleteMethods` for BlockHound
+- **Environment Profiles**: New qa.yml and prod.yml profiles with optimized configurations
+- **Documentation**: Two new comprehensive technical guides for BlockHound and Netty
+
+**This release significantly enhances the Weather Service with enterprise-grade reactive compliance checking, industry-standard performance optimizations, and comprehensive technical documentation.**
+
+---
+
 ## [1.0.0] - 2024-01-15
 
 ### Added

@@ -114,6 +114,7 @@ weather/
 ├── src/main/java/com/weather/
 │   ├── WeatherServiceApplication.java    # Main Spring Boot application
 │   ├── config/                          # Configuration classes
+│   │   ├── BlockHoundConfig.java        # BlockHound reactive violation detection
 │   │   ├── DatabaseConfig.java          # Database configuration
 │   │   ├── MetricsFilterConfig.java     # Metrics filtering configuration
 │   │   ├── MetricsProperties.java       # Custom metrics properties
@@ -157,24 +158,27 @@ weather/
 │   │   ├── WeatherDataService.java     # Weather data service interface
 │   │   └── WeatherDataServiceImpl.java # Weather data service implementation
 │   └── util/                           # Utility classes
-│       └── ApplicationStartupVersionLogger.java # Application startup logger
+│       ├── ApplicationStartupVersionLogger.java # Application startup logger
+│       └── ReactiveContextLogger.java  # Reactive context logging utility
 ├── src/main/resources/
-│   ├── application.yml              # Base configuration with resilience settings
-│   ├── application-local.yml        # H2 local configuration
-│   ├── application-dev.yml          # SQL Server dev configuration
-│   ├── banner.txt                   # Custom Spring Boot banner
+│   ├── application.yml              # Base configuration with industry standards
+│   ├── application-local.yml        # Local development (H2, minimal resources)
+│   ├── application-dev.yml          # Development environment (SQL Server, team dev)
+│   ├── application-qa.yml           # QA environment (load testing, validation)
+│   ├── application-prod.yml         # Production environment (high-performance)
 │   ├── data.sql                     # Sample data for H2
-│   ├── log4j2.xml                   # Logging configuration
+│   ├── log4j2.xml                   # Structured logging configuration
 │   ├── schema.sql                   # H2 database schema
 │   └── schema-mssql.sql             # SQL Server schema
 ├── src/test/java/com/weather/        # Unit and integration tests
 │   ├── WeatherServiceApplicationTests.java # Application context test
 │   ├── controller/
 │   │   └── WeatherDataControllerTest.java   # Controller tests
-│   ├── repository/                          # Repository tests (placeholder)
 │   └── service/
 │       └── WeatherDataServiceImplTest.java  # Service implementation tests
-├── docs/                            # Documentation
+├── docs/                            # Comprehensive documentation
+│   ├── BLOCKHOUND-GUIDE.md          # BlockHound integration and usage guide
+│   ├── NETTY-CONFIGURATION-GUIDE.md # Netty performance configuration guide
 │   ├── architecture/                # Architecture documentation
 │   │   ├── ARCHITECTURE.md          # Complete system architecture
 │   │   └── decisions/               # Architectural Decision Records (ADRs)
@@ -185,20 +189,55 @@ weather/
 │   │       ├── 0004-resilience-patterns.md  # Resilience patterns decision
 │   │       ├── 0005-api-design-principles.md # API design principles decision
 │   │       └── README.md                    # ADR index
-│   ├── monitoring/                  # Monitoring documentation
-│   │   └── reactive-metrics.md      # Reactive metrics documentation
-│       ├── health-indicators-implementation.md  # Health indicators implementation guide
-│       └── resilience-patterns-implementation.md # Resilience patterns implementation guide
+│   ├── checklist/                   # Development checklists
+│   │   ├── Java21-SpringReactiveChecklist.md # Java 21 + Spring reactive checklist
+│   │   └── Redis-Java21-SpringReactiveChecklist.md # Redis reactive checklist
+│   └── monitoring/                  # Monitoring documentation
+│       ├── health-indicators-implementation.md  # Health indicators implementation
+│       ├── reactive-metrics.md      # Reactive metrics documentation
+│       └── resilience-patterns-implementation.md # Resilience patterns implementation
+├── h2/                              # H2 Console setup documentation
+│   └── H2-CONSOLESETUP.md           # H2 console configuration guide
 ├── logs/                            # Application logs
-│   ├── weather-service.log          # Current log file (only for local environment)
-├── target/                          # Maven build output
+│   └── weather-service.log          # Log file (gitignored, local environment only)
+├── .github/                         # GitHub configuration and templates
+│   ├── pull_request_template.md     # Default PR template
+│   └── pull_request_template/       # Specialized PR templates
+│       ├── README.md                # PR template usage guide
+│       ├── feature.md               # Feature development template
+│       ├── bugfix.md                # Bug fix template
+│       ├── config.md                # Configuration/infrastructure template
+│       └── performance.md           # Performance optimization template
+├── .claude/                         # Claude AI assistant context
+├── target/                          # Maven build output (gitignored)
 ├── Dockerfile                       # Multi-stage Docker build
 ├── docker-compose.yml               # Docker Compose configuration
-├── pom.xml                          # Maven configuration
-├── mvnw                            # Maven wrapper script
-├── CHANGELOG.md                     # Change log
-└── README.md                        # This file
+├── pom.xml                          # Maven configuration with Java 21 + BlockHound
+├── mvnw & mvnw.cmd                  # Maven wrapper scripts
+├── CHANGELOG.md                     # Version change history
+└── README.md                        # This comprehensive documentation
 ```
+
+### **📁 Key Directories & Features**
+
+#### **🔧 Configuration Highlights**
+- **BlockHound Integration**: Reactive compliance checking for non-production environments
+- **Environment Profiles**: Local (H2) → Dev → QA → Production (SQL Server)
+- **Industry Standard Netty**: Performance-optimized connection pools and threading
+- **Comprehensive Health Checks**: Deep health monitoring for all components
+- **GitHub PR Templates**: Industry-standard templates for consistent code contributions
+
+#### **📚 Documentation Structure**
+- **Technical Guides**: BlockHound and Netty configuration with industry standards
+- **Architecture Decisions**: Complete ADR documentation for all major decisions
+- **Development Checklists**: Java 21 reactive development best practices
+- **Monitoring Guides**: Health indicators and resilience pattern implementation
+
+#### **🏗️ Code Organization**
+- **Reactive-First Design**: Full WebFlux with R2DBC for non-blocking I/O
+- **Clean Architecture**: Clear separation of concerns across layers
+- **Enterprise Patterns**: Resilience4j integration with health monitoring
+- **Java 21 Features**: Records for DTOs, modern JVM optimizations
 
 ## Building the Project
 
@@ -1225,6 +1264,8 @@ These examples are defined in the DTO annotations and will work seamlessly with 
 
 ## Development Workflow
 
+### **🔄 Standard Development Process**
+
 1. **Make code changes**
 2. **Run tests**: `./mvnw test`
 3. **Build application**: `./mvnw clean package`
@@ -1232,6 +1273,39 @@ These examples are defined in the DTO annotations and will work seamlessly with 
 5. **Verify health**: Check all health endpoints
 6. **Test with Swagger UI**: http://localhost:8080/swagger-ui.html
 7. **Check logs**: `./logs/weather-service-local.log`
+
+### **📋 Pull Request Guidelines**
+
+This project uses **industry-standard PR templates** to ensure consistent, high-quality contributions:
+
+#### **Available Templates**
+- **🔄 Default Template** - General pull requests with comprehensive checklist
+- **✨ Feature Template** - New feature development with business value focus
+- **🐛 Bug Fix Template** - Issue resolution with root cause analysis
+- **🔧 Configuration Template** - Infrastructure changes with deployment planning
+- **⚡ Performance Template** - Optimizations with benchmarking and monitoring
+
+#### **Using PR Templates**
+```bash
+# Create PR with specific template
+https://github.com/your-org/weather-service/compare/main...your-branch?template=feature.md
+```
+
+**Template Selection Guidelines:**
+- **New API endpoints** → Use **Feature Template**
+- **Bug fixes** → Use **Bug Fix Template**  
+- **Environment configuration** → Use **Configuration Template**
+- **Performance improvements** → Use **Performance Template**
+
+#### **PR Quality Checklist**
+- [ ] **Appropriate template selected and completed**
+- [ ] **All testing requirements met**
+- [ ] **BlockHound compliance verified** (for reactive code)
+- [ ] **Environment compatibility tested**
+- [ ] **Documentation updated**
+- [ ] **Performance impact assessed**
+
+**📚 Complete PR Template Guide**: [`.github/pull_request_template/README.md`](.github/pull_request_template/README.md)
 
 ## Configuration
 

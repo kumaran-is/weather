@@ -10,7 +10,7 @@
     </parent>
     <groupId>com.weather</groupId>
     <artifactId>weather-service</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
     <name>weather-service</name>
     <description>A reactive REST service for managing weather data</description>
     <url/>
