@@ -1,0 +1,78 @@
+# ==================================================================================
+# Development Server & Netty Configuration
+# ==================================================================================
+server:
+  netty:
+    # Development-optimized Netty settings for debugging and testing
+    connection-timeout: 3s                    # Moderate timeout for dev environments
+    idle-timeout: 120s                       # 2 minutes idle timeout
+    max-initial-line-length: 6144            # 6KB for dev/test requests
+    h2c-max-content-length: 4194304          # 4MB max content length
+    validate-headers: true                   # Validate headers for debugging
+
+# ==================================================================================
+# Development Environment Netty Configuration
+# Industry Standard: Team development with moderate load
+# Target: 10-50 concurrent users, integration testing
+# ==================================================================================
+
+# JVM arguments for development environment
+# Recommended JVM flags for dev:
+# -Dreactor.netty.ioWorkerCount=4           # Event loop threads (CPU cores / 2)
+# -Dreactor.netty.pool.maxConnections=200   # Medium connection pool
+# -Dreactor.netty.pool.maxIdleTime=60000    # 1 minute idle timeout
+# -Dreactor.netty.pool.maxLifeTime=120000   # 2 minutes connection lifetime
+# -Dreactor.netty.pool.pendingAcquireTimeout=30000  # 30 seconds acquire timeout
+
+# Development environment calculations:
+# CPU Cores: 8 (dev server)
+# Event Loop Threads: 4 (CPU cores / 2 for balanced I/O)
+# Max Connections: 200 (CPU cores × 25, suitable for team development)
+# Worker Threads: 8 (auto-detected by Spring Boot)
+# Reasoning: Balance between performance and resource usage for team dev
+
+spring:
+# ================================================================================ 
+# R2DBC Database Configuration uses real database for dev and higher environments
+# ================================================================================    
+  r2dbc:
+    url: ${DB_URL_DEV:r2dbc:mssql://localhost:1433/weatherdb}
+    username: ${DB_USERNAME_DEV:weather_user}
+    password: ${DB_PASSWORD_DEV:password}
+    pool:
+      enabled: true
+      initial-size: 5                    # Start with more connections for dev
+      max-size: 20                       # Higher pool size for dev testing
+      max-idle-time: 30m                 # Longer idle time
+      max-life-time: 1h                  # Connection lifetime
+      max-acquire-time: 2s               # Time to wait for connection
+      max-create-connection-time: 5s     # Time to create new connection
+      validation-query: SELECT 1         # SQL Server validation
+      # Additional pool metrics
+      register-jmx: true                 # Enable JMX monitoring
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema-mssql.sql
+
+logging:
+  level:
+    com.weather: DEBUG
+    org.springframework.r2dbc: INFO
+    io.r2dbc.pool: DEBUG                 # Pool-specific logging
+    root: INFO
+    org.springframework.boot.web: INFO
+    org.springframework.boot.actuate: INFO
+    org.springframework.boot.autoconfigure: WARN
+    org.springframework.boot.context.config: WARN
+    org.springframework.context: WARN
+   
+# Dev profile specific resilience configuration
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        sliding-window-size: 20
+        minimum-number-of-calls: 10
+        failure-rate-threshold: 40.0
+        wait-duration-in-open-state: 30s

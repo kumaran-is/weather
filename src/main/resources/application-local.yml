@@ -1,0 +1,77 @@
+# ==================================================================================
+# Local Development Server & Netty Configuration
+# ==================================================================================
+server:
+  netty:
+    # Local development Netty settings optimized for single-user debugging
+    connection-timeout: 2s                    # Short timeout for local development
+    idle-timeout: 60s                        # 1 minute idle timeout for local
+    max-initial-line-length: 4096            # 4KB for local requests
+    h2c-max-content-length: 2097152          # 2MB max content length for local
+    validate-headers: false                  # Disable validation for faster local dev
+
+# ==================================================================================
+# Local Development Netty Configuration
+# Industry Standard: Minimal resources for single developer
+# Target: 1-5 concurrent users, fast feedback loop
+# ==================================================================================
+
+# JVM arguments for local development (add to IDE or mvnw)
+# Recommended JVM flags for local:
+# -Dreactor.netty.ioWorkerCount=2           # Event loop threads (CPU cores / 2)
+# -Dreactor.netty.pool.maxConnections=50    # Small connection pool
+# -Dreactor.netty.pool.maxIdleTime=30000    # 30 seconds idle timeout
+# -Dreactor.netty.pool.maxLifeTime=60000    # 1 minute connection lifetime
+
+# Local development connection calculations:
+# CPU Cores: 4 (typical dev machine)
+# Event Loop Threads: 2 (CPU cores / 2 for minimal overhead)
+# Max Connections: 50 (adequate for single developer testing)
+# Reasoning: Optimize for development speed over throughput
+
+spring:
+# ======================================================================== 
+# R2DBC Database Configuration uses H2 in-memory database  only for local
+# ========================================================================    
+  r2dbc:
+    url: r2dbc:h2:file:///./target/h2db/weatherdb?options=AUTO_SERVER=TRUE;AUTO_SERVER_PORT=9092;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    # Add pool configuration for local profile
+    pool:
+      enabled: true
+      initial-size: 3                    # Start with single connection for local dev
+      max-size: 5                        # Smaller pool for local development  
+      max-idle-time: 10m                  # Shorter idle time for local
+      max-life-time: 30m                 # Shorter connection lifetime
+      max-acquire-time: 2s              # Longer timeout for connection acquisition
+      max-create-connection-time: 3s    # Longer timeout for new connection creation
+      validation-query: SELECT 1         # H2 validation query
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+      data-locations: classpath:data.sql
+logging:
+  file:
+    name: ./logs/weather-service-local.log
+  level:
+    com.weather: DEBUG
+    org.springframework.r2dbc: DEBUG
+    io.r2dbc.h2: DEBUG
+    org.springframework.boot.web: INFO
+    org.springframework.boot.actuate: INFO
+    org.springframework.boot.autoconfigure: WARN
+    org.springframework.boot.context.config: WARN
+    org.springframework.context: WARN
+   
+# ======================================================================== 
+# Local profile specific resilience configuration
+# ======================================================================== 
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        sliding-window-size: 5
+        minimum-number-of-calls: 3
+        failure-rate-threshold: 60.0

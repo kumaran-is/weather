@@ -1,0 +1,108 @@
+# ==================================================================================
+# QA Server & Netty Configuration
+# ==================================================================================
+server:
+  netty:
+    # QA environment Netty settings optimized for load testing and validation
+    connection-timeout: 4s                    # Extended timeout for QA testing
+    idle-timeout: 180s                       # 3 minutes idle timeout for QA
+    max-initial-line-length: 6144            # 6KB for QA test requests
+    h2c-max-content-length: 6291456          # 6MB max content length for QA
+    validate-headers: true                   # Always validate in QA environment
+
+# ==================================================================================
+# QA Environment Netty Configuration
+# Industry Standard: Load testing and performance validation
+# Target: 100-500 concurrent users, stress testing
+# ==================================================================================
+
+# JVM arguments for QA environment
+# Recommended JVM flags for QA:
+# -Dreactor.netty.ioWorkerCount=6           # Event loop threads (CPU cores × 0.75)
+# -Dreactor.netty.pool.maxConnections=500   # Large connection pool for load testing
+# -Dreactor.netty.pool.maxIdleTime=90000    # 1.5 minutes idle timeout
+# -Dreactor.netty.pool.maxLifeTime=300000   # 5 minutes connection lifetime
+# -Dreactor.netty.pool.pendingAcquireTimeout=45000  # 45 seconds acquire timeout
+# -Dreactor.netty.pool.pendingAcquireMaxCount=800   # Large queue for load spikes
+
+# QA environment calculations:
+# CPU Cores: 8 (QA server)
+# Event Loop Threads: 6 (CPU cores × 0.75 for load testing stability)
+# Max Connections: 500 (CPU cores × 62.5, optimized for concurrent load)
+# Worker Threads: 12 (auto-detected, can handle blocking operations)
+# Reasoning: Optimized for load testing scenarios and performance validation
+
+spring:
+# ==================================================================================
+# QA R2DBC Database Configuration
+# ==================================================================================    
+  r2dbc:
+    url: ${DB_URL_QA:r2dbc:mssql://qa-db-server:1433/weatherdb}
+    username: ${DB_USERNAME_QA:weather_qa_user}
+    password: ${DB_PASSWORD_QA}
+    pool:
+      enabled: true
+      initial-size: 10
+      max-size: 50
+      max-idle-time: 45m
+      max-life-time: 4h
+      max-acquire-time: 3s
+      max-create-connection-time: 8s
+      validation-query: SELECT 1
+  sql:
+    init:
+      mode: never
+      schema-locations: classpath:schema-mssql.sql
+
+# ==================================================================================
+# QA Logging Configuration
+# ==================================================================================
+logging:
+  level:
+    root: INFO
+    com.weather: DEBUG
+    org.springframework: INFO
+    org.springframework.data.r2dbc: INFO
+    org.springframework.boot.web: INFO
+    org.springframework.boot.actuate: INFO
+    io.r2dbc: INFO
+    io.github.resilience4j: DEBUG
+    reactor.netty: INFO
+    org.springframework.boot.autoconfigure: WARN
+    org.springframework.boot.context.config: WARN
+    org.springframework.context: WARN
+
+# ==================================================================================
+# QA Resilience Configuration
+# ==================================================================================
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        sliding-window-size: 50
+        minimum-number-of-calls: 10
+        failure-rate-threshold: 40
+        wait-duration-in-open-state: 45s
+
+# ==================================================================================
+# QA Management & Monitoring
+# ==================================================================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,deephealth,loggers,configprops
+  endpoint:
+    health:
+      show-details: WHEN_AUTHORIZED
+
+# ==================================================================================
+# QA OpenAPI Configuration
+# ==================================================================================
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    display-request-duration: true
+  show-actuator: true

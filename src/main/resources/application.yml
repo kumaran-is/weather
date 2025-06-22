@@ -1,0 +1,382 @@
+# ===================================================================
+# COMMON SPRING BOOT PROPERTIES
+# ===================================================================
+spring:
+  application:
+    name: weather-service
+  main:
+    banner-mode: log
+  jackson:
+    default-property-inclusion: NON_NULL
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
+
+# ===================================================================
+# R2DBC Database Configuration (Defaults, overridden by profiles)
+# ===================================================================    
+  r2dbc:
+    url: r2dbc:h2:file:///./target/h2db/weatherdb?options=AUTO_SERVER=TRUE;AUTO_SERVER_PORT=9092;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    # Add pool configuration for local profile
+    pool:
+      enabled: true
+      initial-size: 3                    # Start with single connection for local dev
+      max-size: 5                        # Smaller pool for local development  
+      max-idle-time: 10m                  # Shorter idle time for local
+      max-life-time: 30m                 # Shorter connection lifetime
+      max-acquire-time: 2s              # Longer timeout for connection acquisition
+      max-create-connection-time: 3s    # Longer timeout for new connection creation
+      validation-query: SELECT 1         # H2 validation query
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+      data-locations: classpath:data.sql
+    # For H2: validation-query: SELECT 1
+    # For MSSQL: validation-query: SELECT 1
+    # For PostgreSQL: validation-query: SELECT 1
+    # For MySQL: validation-query: SELECT 1
+  # schema: classpath*:db/schema.sql # For auto-creating schema (H2)
+  # data: classpath*:db/data.sql   # For auto-populating data (H2)
+
+# ===================================================================
+# SERVER CONFIGURATION
+# ===================================================================
+server:
+  port: ${SERVER_PORT:8080} # Standard application port
+  shutdown: graceful # Enable graceful shutdown
+  netty:
+    # ===================================================================
+    # Base Netty Configuration (Suitable for most environments)
+    # Industry Standards Applied
+    # ===================================================================
+    connection-timeout: 2s                    # TCP connection timeout (default baseline)
+    idle-timeout: 60s                        # Channel idle timeout (conservative default)
+    max-initial-line-length: 4096            # Max HTTP initial line length (4KB - standard)
+    h2c-max-content-length: 0                # H2C max content length (0 = unlimited for dev)
+    validate-headers: true                   # Validate HTTP headers (security best practice)
+    
+    # ===================================================================
+    # Industry Standard Connection & Thread Pool Guidelines
+    # ===================================================================
+    # These configurations are applied via JVM arguments per environment:
+    #
+    # For I/O Intensive Applications (like Weather Service REST API):
+    # - Event Loop Threads = CPU Cores × 2 (optimal for non-blocking I/O)
+    # - Max Connections = CPU Cores × 100-200 (concurrent user capacity)
+    # - Worker Threads = Auto-detected by Spring Boot (typically CPU × 4-8)
+    #
+    # Memory Considerations:
+    # - ~2MB memory overhead per 100 connections
+    # - ~1MB per event loop thread
+    # - Total memory = (connections/100 × 2MB) + (threads × 1MB)
+    #
+    # Application Type Multipliers:
+    # - REST APIs (80% I/O): CPU × 2 for event loops, CPU × 150 for connections
+    # - Database Heavy (90% I/O): CPU × 2-3 for event loops, CPU × 200 for connections  
+    # - CPU Intensive (80% CPU): CPU × 1 for event loops, CPU × 50 for connections
+    # - Mixed Workload (50/50): CPU × 1.5 for event loops, CPU × 100 for connections
+  error:
+    whitelabel:
+      enabled: false # Disable Spring Boot's default error page
+
+# ===================================================================
+# ACTUATOR AND METRICS (Management Server)
+# ===================================================================
+management:
+  endpoints:
+    web:
+      base-path: /management
+      exposure:
+        include: health,info,metrics,prometheus,deephealth,loggers,configprops,env,beans,mappings,threaddump,heapdump
+  endpoint:
+    health:
+      show-details: WHEN_AUTHORIZED
+      probes:
+        enabled: true
+    info:
+      access: READ_ONLY
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+    circuitbreakers:
+      enabled: true
+    ratelimiters:
+      enabled: true
+  info:
+    build:
+      enabled: true
+    git:
+      enabled: true
+      mode: full
+    java:
+      enabled: true
+    os:
+      enabled: true
+
+# ===================================================================
+# OpenAPI/Swagger Configuration
+# ===================================================================
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    display-request-duration: true
+    operations-sorter: method
+    tags-sorter: alpha
+  show-actuator: false
+  override-with-generic-response: false
+  # show-actuator: true # This will be profile-specific
+
+# ===================================================================
+# Resilience4j Global Configuration (Defaults)
+# These can be overridden per instance for specific database operations.
+# ===================================================================
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 100
+        minimum-number-of-calls: 20
+        failure-rate-threshold: 50
+        slow-call-rate-threshold: 100
+        slow-call-duration-threshold: 5s
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 10
+        automatic-transition-from-open-to-half-open-enabled: true
+        register-health-indicator: true
+    instances:
+      getWeatherDataDb:
+        baseConfig: default
+      createWeatherDataDb:
+        baseConfig: default
+      updateWeatherDataDb:
+        baseConfig: default
+      deleteWeatherDataDb:
+        baseConfig: default
+      getAllCitiesDb:
+        baseConfig: default
+      getWeatherByCityDb:
+        baseConfig: default
+      getLatestWeatherDb:
+        baseConfig: default
+      getWeatherByDateRangeDb:
+        baseConfig: default
+  retry:
+    configs:
+      default:
+        max-attempts: 3
+        wait-duration: 500ms
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        exponential-max-wait-duration: 5s
+        enable-random-jitter: true
+        retry-exceptions:
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+          - org.springframework.dao.DataAccessException
+          - java.sql.SQLException
+          - org.springframework.r2dbc.BadSqlGrammarException
+        ignore-exceptions:
+          - com.weather.exception.WeatherValidationException
+          - com.weather.exception.WeatherNotFoundException
+        register-health-indicator: true
+    instances:
+      getWeatherDataDb:
+        baseConfig: default
+      createWeatherDataDb:
+        baseConfig: default
+      updateWeatherDataDb:
+        baseConfig: default
+      deleteWeatherDataDb:
+        baseConfig: default
+      getAllCitiesDb:
+        baseConfig: default
+      getWeatherByCityDb:
+        baseConfig: default
+      getLatestWeatherDb:
+        baseConfig: default
+      getWeatherByDateRangeDb:
+        baseConfig: default
+  ratelimiter:
+    configs:
+      default:
+        limit-for-period: 100
+        limit-refresh-period: 1s
+        timeout-duration: 1s
+        register-health-indicator: true
+    instances:
+      getWeatherDataDb:
+        baseConfig: default
+      createWeatherDataDb:
+        baseConfig: default
+        limit-for-period: 50
+      updateWeatherDataDb:
+        baseConfig: default
+        limit-for-period: 50
+      deleteWeatherDataDb:
+        baseConfig: default
+        limit-for-period: 25
+  timelimiter:
+    configs:
+      default:
+        timeout-duration: 3s
+        cancel-running-future: true
+        register-health-indicator: true
+    instances:
+      getWeatherDataDb:
+        baseConfig: default
+      createWeatherDataDb:
+        baseConfig: default
+        timeout-duration: 5s
+      updateWeatherDataDb:
+        baseConfig: default
+        timeout-duration: 5s
+      deleteWeatherDataDb:
+        baseConfig: default
+      getAllCitiesDb:
+        baseConfig: default
+        timeout-duration: 2s
+      getWeatherByCityDb:
+        baseConfig: default
+      getLatestWeatherDb:
+        baseConfig: default
+      getWeatherByDateRangeDb:
+        baseConfig: default
+        timeout-duration: 10s
+  bulkhead:
+    configs:
+      default:
+        max-concurrent-calls: 25
+        max-wait-duration: 0ms
+        register-health-indicator: true
+    instances:
+      getWeatherDataDb:
+        baseConfig: default
+      createWeatherDataDb:
+        baseConfig: default
+        max-concurrent-calls: 15
+      updateWeatherDataDb:
+        baseConfig: default
+        max-concurrent-calls: 15
+      deleteWeatherDataDb:
+        baseConfig: default
+        max-concurrent-calls: 10
+      getAllCitiesDb:
+        baseConfig: default
+        max-concurrent-calls: 30
+      getWeatherByCityDb:
+        baseConfig: default
+      getLatestWeatherDb:
+        baseConfig: default
+      getWeatherByDateRangeDb:
+        baseConfig: default
+        max-concurrent-calls: 20
+
+# ===================================================================
+# Security Configuration (Defaults)
+# ===================================================================
+# custom.security block removed due to unknown property error.
+# If you want to use these properties, create a @ConfigurationProperties(prefix = "custom.security") class in your code,
+# or move relevant settings under 'spring.security' or another recognized namespace as per your application's configuration.
+security:
+  # CORS Configuration
+  allowed-origins:
+    - "*" # WARNING: For development only. Restrict in production.
+  allowed-methods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - OPTIONS
+    - HEAD
+  allowed-headers:
+    - Authorization
+    - Content-Type
+    - Accept
+    - X-Requested-With
+    - Origin
+  allow-credentials: true # Be cautious with this in production
+  max-age-seconds: 3600 # 1 hour
+
+  # Security Headers
+  content-security-policy: "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'none';" # Updated for Swagger UI (from agent-service)
+  frame-options: "DENY" # X-Frame-Options
+  xss-protection: "1; mode=block" # X-XSS-Protection
+  content-type-options: "nosniff" # X-Content-Type-Options
+  csrf-enabled: false # CSRF typically handled differently in stateless REST APIs
+
+# ===================================================================
+# LOGGING CONFIGURATION (Log4j2 with ECS-compatible structured logging)
+# Using Log4j2 native API with custom JSON patterns for Azure Application Insights, Loki, and Grafana
+# ===================================================================
+logging:
+  config: classpath:log4j2.xml
+  
+  # Log levels configuration
+  level:
+    root: INFO
+    com.weather: DEBUG
+    org.springframework: INFO
+    org.springframework.web: INFO
+    org.springframework.security: INFO
+    org.springframework.data.r2dbc: INFO
+    org.springframework.boot.actuate: INFO
+    org.springframework.boot.autoconfigure: WARN
+    org.springframework.boot.context.config: WARN
+    org.springframework.context: WARN
+    io.r2dbc.mssql: INFO
+    io.r2dbc.h2: INFO
+    io.github.resilience4j: INFO
+    reactor.netty: INFO
+    io.netty: INFO
+  
+  # File logging configuration for Log4j2
+  file:
+    name: logs/weather-service.log
+
+# ===================================================================
+# Custom application info
+# ===================================================================
+info:
+  app:
+    name: "@project.name@"
+    description: "@project.description@"
+    version: "@project.version@"
+    encoding: "@project.build.sourceEncoding@"
+    java:
+      version: "@java.version@"
+
+# ===================================================================
+# Weather service specific configuration
+# ===================================================================
+weather:
+  metrics:
+    # Enable custom reactive metrics collection
+    enabled: true
+    # Include detailed URI and method tags in metrics
+    include-detailed-tags: true
+    # API path prefixes to include in custom metrics (future-proof for multiple APIs)
+    included-api-paths:
+      - "/api/v1/"
+      # Future extensions:
+      # - "/api/auth/"
+      # - "/api/v2/"
+      # - "/admin/api/"
+# ===================================================================
+# Application properties for banner and info
+# ===================================================================
+application:
+  title: "@project.name@"
+  version: "@project.version@"
+
+# ===================================================================
+# Custom Application Properties (if any)
+# ===================================================================
