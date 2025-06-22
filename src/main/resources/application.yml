@@ -16,19 +16,25 @@ spring:
 # ===================================================================
 # R2DBC Database Configuration (Defaults, overridden by profiles)
 # ===================================================================    
-spring.r2dbc:
-  url: r2dbc:h2:mem:///weatherdb?DB_CLOSE_DELAY=-1&DB_CLOSE_ON_EXIT=FALSE
-  username: weather_user
-  password: weather_pass
-  pool:
-    enabled: true
-    initial-size: 5
-    max-size: 20
-    max-idle-time: 30m
-    max-life-time: 1h
-    max-acquire-time: 2s
-    max-create-connection-time: 5s
-    validation-query: SELECT 1 # Generic validation query
+  r2dbc:
+    url: r2dbc:h2:file:///./target/h2db/weatherdb?options=AUTO_SERVER=TRUE;AUTO_SERVER_PORT=9092;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    # Add pool configuration for local profile
+    pool:
+      enabled: true
+      initial-size: 3                    # Start with single connection for local dev
+      max-size: 5                        # Smaller pool for local development  
+      max-idle-time: 10m                  # Shorter idle time for local
+      max-life-time: 30m                 # Shorter connection lifetime
+      max-acquire-time: 2s              # Longer timeout for connection acquisition
+      max-create-connection-time: 3s    # Longer timeout for new connection creation
+      validation-query: SELECT 1         # H2 validation query
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+      data-locations: classpath:data.sql
     # For H2: validation-query: SELECT 1
     # For MSSQL: validation-query: SELECT 1
     # For PostgreSQL: validation-query: SELECT 1

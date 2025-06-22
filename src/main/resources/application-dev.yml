@@ -1,13 +1,22 @@
 spring:
+# ================================================================================ 
+# R2DBC Database Configuration uses real database for dev and higher environments
+# ================================================================================    
   r2dbc:
     url: ${DB_URL_DEV:r2dbc:mssql://localhost:1433/weatherdb}
     username: ${DB_USERNAME_DEV:weather_user}
     password: ${DB_PASSWORD_DEV:password}
     pool:
-      initial-size: 5
-      max-size: 20
-      max-idle-time: 30m
-      validation-query: SELECT 1
+      enabled: true
+      initial-size: 5                    # Start with more connections for dev
+      max-size: 20                       # Higher pool size for dev testing
+      max-idle-time: 30m                 # Longer idle time
+      max-life-time: 1h                  # Connection lifetime
+      max-acquire-time: 2s               # Time to wait for connection
+      max-create-connection-time: 5s     # Time to create new connection
+      validation-query: SELECT 1         # SQL Server validation
+      # Additional pool metrics
+      register-jmx: true                 # Enable JMX monitoring
   sql:
     init:
       mode: always
@@ -17,8 +26,8 @@ logging:
   level:
     com.weather: DEBUG
     org.springframework.r2dbc: INFO
+    io.r2dbc.pool: DEBUG                 # Pool-specific logging
     root: INFO
-
 # Dev profile specific resilience configuration
 resilience4j:
   circuitbreaker:
