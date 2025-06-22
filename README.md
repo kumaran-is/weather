@@ -35,6 +35,9 @@ A reactive REST service for managing weather data, built with Java 21, Spring Bo
 - [Resilience Patterns & Health Monitoring](#resilience-patterns--health-monitoring)
 - [Reactive Programming Best Practices](#reactive-programming-best-practices)
 - [Architecture Documentation](#architecture-documentation)
+- [H2 Console Setup for Spring Boot WebFlux - Local Development Guide](#h2-console-setup-for-spring-boot-webflux---local-development-guide)
+- [Checklist](#checklist)
+
 
 ## Overview
 
@@ -182,8 +185,8 @@ weather/
 │   │       └── README.md                    # ADR index
 │   ├── monitoring/                  # Monitoring documentation
 │   │   └── reactive-metrics.md      # Reactive metrics documentation
-│   ├── health-indicators-implementation.md  # Health indicators implementation guide
-│   └── resilience-patterns-implementation.md # Resilience patterns implementation guide
+│       ├── health-indicators-implementation.md  # Health indicators implementation guide
+│       └── resilience-patterns-implementation.md # Resilience patterns implementation guide
 ├── logs/                            # Application logs
 │   ├── weather-service.log          # Current log file (only for local environment)
 ├── target/                          # Maven build output
@@ -1304,7 +1307,7 @@ docker run -p 8080:8080 -e SPRING_PROFILES_ACTIVE=local weather-service
 This Weather Service implements **enterprise-grade resilience patterns** and **comprehensive health monitoring** to ensure high availability, fault tolerance, and operational visibility.
 
 ### 📚 **Resilience and Health Check Implementation Documentation**
-- **[Resilience Patterns Implementation Guide](docs/resilience-patterns-implementation.md)** - Comprehensive resilience patterns implementation in the Weather Service application
+- **[Resilience Patterns Implementation Guide](docs/monitoring/resilience-patterns-implementation.md)** - Comprehensive resilience patterns implementation in the Weather Service application
 
 ### 🛡️ **Comprehensive Resilience Implementation**
 
@@ -1373,7 +1376,7 @@ resilience4j:
 - **Reactive Chain Preservation**: Maintains reactive flow with `Mono.error()`
 
 ### 📚 **Health Check Implementation Documentation**
-- **[Health Indicators Implementation Guide](docs/health-indicators-implementation.md)** - Comprehensive health monitoring system implemented in the Weather Service application
+- **[Health Indicators Implementation Guide](docs/monitoring/health-indicators-implementation.md)** - Comprehensive health monitoring system implemented in the Weather Service application
 
 ### 🏥 **Comprehensive Health Monitoring System**
 
@@ -1496,7 +1499,7 @@ resilience4j:
 For comprehensive implementation details, see our dedicated documentation:
 
 #### **📖 Resilience Patterns Documentation**
-**[📋 Resilience Patterns Implementation Guide](docs/resilience-patterns-implementation.md)**
+**[📋 Resilience Patterns Implementation Guide](docs/monitoring/resilience-patterns-implementation.md)**
 
 **Covers:**
 - Registry-based architecture and design principles
@@ -1508,7 +1511,7 @@ For comprehensive implementation details, see our dedicated documentation:
 - Troubleshooting guide and best practices
 
 #### **📖 Health Indicators Documentation**  
-**[🏥 Health Indicators Implementation Guide](docs/health-indicators-implementation.md)**
+**[🏥 Health Indicators Implementation Guide](docs/monitoring/health-indicators-implementation.md)**
 
 **Covers:**
 - Individual health indicator implementations
@@ -2017,3 +2020,14 @@ For detailed architectural decisions and design principles, see:
 ---
 
 **🎉 Your Weather Service is ready! Start with the health checks, then explore the API using Swagger UI.**
+
+## H2 Console Setup for Spring Boot WebFlux - Local Development Guide
+
+For detailed setup, see:[H2 Console Setup for Spring Boot WebFlux](h2/H2-CONSOLESETUP.md)
+
+## Checklist
+
+For detailed Java 21 + Spring WebFlux Reactive REST + Redis Cache Checklist, see:
+
+- [Java 21 + Spring WebFlux Reactive REST Checklist](docs/checklist/Java21-SpringReactiveChecklist.md)
+- [Redis Cache Integration Checklist for Java 21 + Spring WebFlux 3.4.5](docs/checklist/RedisCacheChecklist.md)
