@@ -46,71 +46,106 @@
 ### **🧪 Reviewer Testing Instructions**
 
 #### **📥 Setup & Checkout**
-```bash
-# 1. Clone the repository (if not already done)
-git clone https://github.com/your-org/weather-service.git
-cd weather-service
 
-# 2. Checkout the PR branch
+1. Clone the repository (if not already done)
+
+```bash
+git clone https://github.com/kumaran-is/weather.git
+cd weather
+```   
+2. Checkout the PR branch
+
+```bash
 git fetch origin
 git checkout <branch-name>
+```
 
-# 3. Ensure you have the latest changes
+3. Ensure you have the latest changes
+
+```bash
 git pull origin <branch-name>
 ```
 
 #### **🔧 Build & Validation**
+4. Clean previous builds
+
 ```bash
-# 4. Clean previous builds
-./mvnw clean
-
-# 5. Compile and run static analysis
-./mvnw compile
-
-# 6. Run all tests (unit + integration)
-./mvnw test
-
-# 7. Build the complete application
-./mvnw package
-
-# 8. Check for any compilation warnings or errors
+./mvnw clean install
 ```
 
-#### **🚀 Local Testing**
-```bash
-# 9. Start the application with local profile
-./mvnw spring-boot:run -Dspring-boot.run.profiles=local
+5. Compile and run static analysis
 
-# Wait for startup completion (look for "Started WeatherServiceApplication")
+```bash
+./mvnw compile
+```
+6. Run all tests (unit + integration)
+
+```bash
+./mvnw test
+```
+
+7. Build the complete application
+
+```bash
+./mvnw package
+```
+
+8. Check for any compilation warnings or errors
+
+#### **🚀 Local Testing**
+
+9. Start the application with local profile, wait for startup completion (look for "Started WeatherServiceApplication")
+
+```bash
+./mvnw spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
 #### **✅ Health & Functionality Verification**
+
+10. Test health endpoints (in a new terminal)
+
 ```bash
-# 10. Test health endpoints (in a new terminal)
 curl -s http://localhost:8080/management/health | jq '.'
 curl -s http://localhost:8080/management/health/liveness | jq '.'
 curl -s http://localhost:8080/management/health/readiness | jq '.'
+```
+11.  Test deep health check
 
-# 11. Test deep health check
+```bash
 curl -s http://localhost:8080/management/deephealth | jq '.'
+```
 
-# 12. Verify application info
+12. Verify application info
+
+```bash
 curl -s http://localhost:8080/management/info | jq '.'
 ```
 
 #### **📊 API Testing**
+
+13.  Test core API endpoints
+
+Get all cities
+
 ```bash
-# 13. Test core API endpoints
-# Get all cities
 curl -s http://localhost:8080/api/v1/weather/cities | jq '.'
+```
 
-# Get weather by city (should return data from H2)
+Get weather by city (should return data from H2)
+
+```bash
 curl -s "http://localhost:8080/api/v1/weather/city/New York" | jq '.'
+```
 
-# Test pagination
+Test pagination
+
+```bash
 curl -s "http://localhost:8080/api/v1/weather/city/London?page=0&size=5" | jq '.'
+```
 
-# Create new weather data (POST test)
+Create new weather data (POST test)
+
+```bash
 curl -X POST http://localhost:8080/api/v1/weather \
   -H "Content-Type: application/json" \
   -d '{
@@ -123,61 +158,79 @@ curl -X POST http://localhost:8080/api/v1/weather \
 ```
 
 #### **🌐 Swagger UI Testing**
-```bash
-# 14. Open Swagger UI in browser
-open http://localhost:8080/swagger-ui.html
-# Or manually navigate to: http://localhost:8080/swagger-ui.html
 
-# Verify:
-# - [ ] Swagger UI loads without errors
-# - [ ] All endpoints are documented
-# - [ ] Example values are present
-# - [ ] Try executing a GET request through Swagger UI
-# - [ ] Response schemas are properly displayed
+14. Open Swagger UI in browser
+
+```bash
+open http://localhost:8080/swagger-ui.html
 ```
 
-#### **🔍 Logs & Monitoring**
-```bash
-# 15. Check application logs
-tail -f logs/weather-service.log
+Or manually navigate to:
 
-# Look for:
-# - [ ] No ERROR level messages
-# - [ ] INFO level startup messages
-# - [ ] BlockHound integration message (if applicable)
-# - [ ] No [BLOCKHOUND_VIOLATION] warnings (unless expected)
+```bash 
+http://localhost:8080/swagger-ui.html
+```
+Verify:
+- [ ] Swagger UI loads without errors
+- [ ] All endpoints are documented
+- [ ] Example values are present
+- [ ] Try executing a GET request through Swagger UI
+- [ ] Response schemas are properly displayed
+
+#### **🔍 Logs & Monitoring**
+
+15.  Check application logs
+
+```bash
+tail -f logs/weather-service.log
+```
+Look for:
+- [ ] No ERROR level messages
+- [ ] INFO level startup messages
+- [ ] BlockHound integration message (if applicable)
+- [ ] No [BLOCKHOUND_VIOLATION] warnings (unless expected)
 ```
 
 #### **⚡ Performance & Resource Check**
+
+#16. Monitor resource usage
+- Check memory usage
+
 ```bash
-# 16. Monitor resource usage
-# Check memory usage
 jps -v | grep weather
+```
+- Check process CPU/memory (Mac/Linux)
 
-# Check process CPU/memory (Mac/Linux)
+```bash
 top -p $(pgrep -f weather-service)
-
-# Verify reasonable startup time (<30 seconds for local)
 ```
 
+- Verify reasonable startup time (<30 seconds for local)
+
 #### **🛡️ Environment Profile Testing** (if configuration changed)
-```bash
-# 17. Test different profiles (if applicable)
-# Stop current instance (Ctrl+C) then test:
 
-# Dev profile (requires SQL Server or mock)
+17. Test different profiles (if applicable)
+
+- Stop current instance (Ctrl+C) then test:
+- Dev profile (requires SQL Server or mock)
+
+```bash  
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+```
+- Check health after profile change
 
-# Check health after profile change
+```bash
 curl -s http://localhost:8080/management/health | jq '.'
 ```
 
 #### **🔄 Cleanup**
-```bash
-# 18. Stop the application
-# Press Ctrl+C in the terminal running the application
 
-# 19. Clean workspace (optional)
+18.  Stop the application
+- Press Ctrl+C in the terminal running the application
+
+19. Clean workspace (optional)
+
+```bash
 ./mvnw clean
 ```
 

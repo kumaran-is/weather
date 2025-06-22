@@ -39,17 +39,53 @@ lsof -i :8080  # Should return nothing
 ```
 
 #### **Project Setup**
-```bash
-# 1. Navigate to project directory or clone if needed
-cd weather-service
-# OR: git clone https://github.com/your-org/weather-service.git && cd weather-service
 
-# 2. Checkout the PR branch
+1. Clone the repository (if not already done)
+
+```bash
+git clone https://github.com/kumaran-is/weather.git
+cd weather
+```   
+2. Checkout the PR branch
+
+```bash
 git fetch origin
 git checkout <branch-name>
-git pull origin <branch-name>
+```
 
-# 3. Check branch information
+3. Ensure you have the latest changes
+
+```bash
+git pull origin <branch-name>
+```
+
+#### **🔧 Build & Validation**
+4. Clean previous builds
+
+```bash
+./mvnw clean install
+```
+
+5. Compile and run static analysis
+
+```bash
+./mvnw compile
+```
+6. Run all tests (unit + integration)
+
+```bash
+./mvnw test
+```
+
+7. Build the complete application
+
+```bash
+./mvnw package
+```
+
+8. Check branch information
+
+```bash
 git log --oneline -5  # Review recent commits
 git diff main..HEAD --stat  # See changed files summary
 ```

@@ -89,9 +89,10 @@ This service provides RESTful endpoints to record, retrieve, update, and delete 
 
 1. **Clone and build the project:**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/kumaran-is/weather.git
    cd weather
-   ./mvnw clean package
+   git checkout <branch-name>
+   ./mvnw clean install
    ```
 
 2. **Run the application:**
