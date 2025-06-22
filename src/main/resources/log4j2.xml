@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration status="WARN">
     <Properties>
-        <Property name="LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n</Property>
-        <Property name="LOG_PATTERN_CONSOLE">%d{HH:mm:ss.SSS} [%t] %highlight{%-5level} %style{%logger{36}}{cyan} - %msg%n</Property>
+        <Property name="LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n%throwable</Property>
+        <Property name="LOG_PATTERN_CONSOLE">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %highlight{%-5level} %style{%logger{36}}{cyan} - %msg%n%throwable</Property>
     </Properties>
 
     <Appenders>
         <!-- Console Appender -->
-        <Console name="ConsoleAppender" target="SYSTEM_OUT">
+        <Console name="ConsoleAppender" target="SYSTEM_OUT" follow="true">
             <PatternLayout pattern="${LOG_PATTERN_CONSOLE}"/>
         </Console>
 
@@ -16,7 +16,7 @@
                      filePattern="${sys:logging.file.name:-logs/weather-service}-%d{yyyy-MM-dd}-%i.log.gz">
             <PatternLayout pattern="${LOG_PATTERN}"/>
             <Policies>
-                <TimeBasedTriggeringPolicy/>
+                <TimeBasedTriggeringPolicy interval="1" modulate="true" />
                 <SizeBasedTriggeringPolicy size="10MB"/>
             </Policies>
             <DefaultRolloverStrategy max="10"/>
@@ -27,42 +27,78 @@
         <!-- Application Loggers -->
         <Logger name="com.weather" level="DEBUG" additivity="false">
             <AppenderRef ref="ConsoleAppender"/>
-            <AppenderRef ref="FileAppender"/>
+            <SpringProfile name="local">
+                <AppenderRef ref="FileAppender"/>
+            </SpringProfile>
         </Logger>
 
         <!-- Spring Framework Loggers -->
         <Logger name="org.springframework" level="INFO" additivity="false">
             <AppenderRef ref="ConsoleAppender"/>
-            <AppenderRef ref="FileAppender"/>
+            <SpringProfile name="local">
+                <AppenderRef ref="FileAppender"/>
+            </SpringProfile>
         </Logger>
 
         <!-- R2DBC Loggers -->
         <Logger name="org.springframework.r2dbc" level="INFO" additivity="false">
             <AppenderRef ref="ConsoleAppender"/>
-            <AppenderRef ref="FileAppender"/>
+            <SpringProfile name="local"> <!-- DEBUG to file for local H2 troubleshooting -->
+                <AppenderRef ref="FileAppender" level="DEBUG" />
+            </SpringProfile>
         </Logger>
 
         <Logger name="io.r2dbc" level="INFO" additivity="false">
             <AppenderRef ref="ConsoleAppender"/>
-            <AppenderRef ref="FileAppender"/>
+            <SpringProfile name="local"> <!-- DEBUG to file for local H2 troubleshooting -->
+                <AppenderRef ref="FileAppender" level="DEBUG"/>
+            </SpringProfile>
         </Logger>
 
         <!-- Resilience4j Loggers -->
-        <Logger name="io.github.resilience4j" level="DEBUG" additivity="false">
+        <Logger name="io.github.resilience4j" level="INFO" additivity="false">
             <AppenderRef ref="ConsoleAppender"/>
-            <AppenderRef ref="FileAppender"/>
+            <SpringProfile name="local">
+                <AppenderRef ref="FileAppender"/>
+            </SpringProfile>
         </Logger>
 
         <!-- Security Loggers -->
         <Logger name="org.springframework.security" level="INFO" additivity="false">
             <AppenderRef ref="ConsoleAppender"/>
-            <AppenderRef ref="FileAppender"/>
+            <SpringProfile name="local">
+                <AppenderRef ref="FileAppender"/>
+            </SpringProfile>
+        </Logger>
+
+        <!-- Netty Project Loggers -->
+        <Logger name="io.netty" level="INFO" additivity="false">
+            <AppenderRef ref="ConsoleAppender"/>
+            <SpringProfile name="local">
+                <AppenderRef ref="FileAppender"/>
+            </SpringProfile>
+        </Logger>
+        <Logger name="reactor.netty" level="INFO" additivity="false"> <!-- Default INFO for console -->
+            <AppenderRef ref="ConsoleAppender"/> <!-- DEBUG to file for local troubleshooting -->
+            <SpringProfile name="local">
+                <AppenderRef ref="FileAppender" level="DEBUG"/>
+            </SpringProfile>
+        </Logger>
+        
+        <!-- Project Reactor Loggers -->
+        <Logger name="reactor.core" level="INFO" additivity="false">
+            <AppenderRef ref="ConsoleAppender"/>
+            <SpringProfile name="local">
+                <AppenderRef ref="FileAppender"/>
+            </SpringProfile>
         </Logger>
 
         <!-- Root Logger -->
         <Root level="INFO">
             <AppenderRef ref="ConsoleAppender"/>
-            <AppenderRef ref="FileAppender"/>
+            <SpringProfile name="local">
+                <AppenderRef ref="FileAppender"/>
+            </SpringProfile>
         </Root>
     </Loggers>
 </Configuration>
