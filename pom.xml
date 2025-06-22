@@ -149,6 +149,14 @@
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-tracing</artifactId>
         </dependency>
+        
+        <!-- BlockHound for Detecting Blocking Calls in Reactive Code (Non-Production) -->
+        <dependency>
+            <groupId>io.projectreactor.tools</groupId>
+            <artifactId>blockhound</artifactId>
+            <version>1.0.8.RELEASE</version>
+            <scope>runtime</scope>
+        </dependency>
     </dependencies>
 
     <build>

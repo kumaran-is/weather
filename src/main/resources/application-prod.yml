@@ -1,0 +1,85 @@
+spring:
+# ==================================================================================
+# Production R2DBC Database Configuration
+# ==================================================================================    
+  r2dbc:
+    url: ${DB_URL_PROD:r2dbc:mssql://prod-db-server:1433/weatherdb}
+    username: ${DB_USERNAME_PROD:weather_prod_user}
+    password: ${DB_PASSWORD_PROD}
+    pool:
+      enabled: true
+      initial-size: 20
+      max-size: 100
+      max-idle-time: 1h
+      max-life-time: 8h
+      max-acquire-time: 5s
+      max-create-connection-time: 10s
+      validation-query: SELECT 1
+  sql:
+    init:
+      mode: never
+
+# ==================================================================================
+# Production Logging Configuration
+# ==================================================================================
+logging:
+  level:
+    root: WARN
+    com.weather: INFO
+    org.springframework: WARN
+    org.springframework.data.r2dbc: WARN
+    io.r2dbc: WARN
+    io.github.resilience4j: INFO
+    reactor.netty: WARN
+
+# ==================================================================================
+# Production Security Configuration
+# ==================================================================================
+security:
+  allowed-origins:
+    - "${ALLOWED_ORIGINS:https://weather-app.yourdomain.com}"
+  allowed-methods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - OPTIONS
+  allow-credentials: false
+  content-security-policy: "default-src 'self'; style-src 'self'; img-src 'self' data:; frame-ancestors 'none';"
+
+# ==================================================================================
+# Production Resilience Configuration
+# ==================================================================================
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        sliding-window-size: 200
+        minimum-number-of-calls: 50
+        failure-rate-threshold: 30
+        wait-duration-in-open-state: 60s
+  retry:
+    configs:
+      default:
+        max-attempts: 2
+        wait-duration: 1s
+
+# ==================================================================================
+# Production Management & Monitoring
+# ==================================================================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: never
+# ==================================================================================
+# Production OpenAPI Configuration - Disabled
+# ==================================================================================
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false

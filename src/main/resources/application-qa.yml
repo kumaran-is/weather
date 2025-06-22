@@ -1,0 +1,69 @@
+spring:
+# ==================================================================================
+# QA R2DBC Database Configuration
+# ==================================================================================    
+  r2dbc:
+    url: ${DB_URL_QA:r2dbc:mssql://qa-db-server:1433/weatherdb}
+    username: ${DB_USERNAME_QA:weather_qa_user}
+    password: ${DB_PASSWORD_QA}
+    pool:
+      enabled: true
+      initial-size: 10
+      max-size: 50
+      max-idle-time: 45m
+      max-life-time: 4h
+      max-acquire-time: 3s
+      max-create-connection-time: 8s
+      validation-query: SELECT 1
+  sql:
+    init:
+      mode: never
+      schema-locations: classpath:schema-mssql.sql
+
+# ==================================================================================
+# QA Logging Configuration
+# ==================================================================================
+logging:
+  level:
+    root: INFO
+    com.weather: DEBUG
+    org.springframework: INFO
+    org.springframework.data.r2dbc: INFO
+    io.r2dbc: INFO
+    io.github.resilience4j: DEBUG
+    reactor.netty: INFO
+
+# ==================================================================================
+# QA Resilience Configuration
+# ==================================================================================
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        sliding-window-size: 50
+        minimum-number-of-calls: 10
+        failure-rate-threshold: 40
+        wait-duration-in-open-state: 45s
+
+# ==================================================================================
+# QA Management & Monitoring
+# ==================================================================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,deephealth,loggers,configprops
+  endpoint:
+    health:
+      show-details: WHEN_AUTHORIZED
+
+# ==================================================================================
+# QA OpenAPI Configuration
+# ==================================================================================
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    display-request-duration: true
+  show-actuator: true
