@@ -5,6 +5,7 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import reactor.core.publisher.Hooks;
+import reactor.core.publisher.Signal;
 import reactor.util.context.Context;
 
 import java.util.Optional;
@@ -32,9 +33,27 @@ public class ReactiveContextConfig {
         // Enable automatic context propagation
         Hooks.enableAutomaticContextPropagation();
         
-        log.info("Enabled automatic reactive context propagation");
+        log.info("Enabled automatic reactive context propagation with ThreadContext population");
         
         return new ReactiveContextPropagation();
+    }
+    
+    /**
+     * Helper method to populate ThreadContext from a Reactor signal
+     */
+    private static void populateThreadContextFromSignal(Signal<?> signal) {
+        signal.getContextView().getOrEmpty(CORRELATION_ID_KEY)
+                .ifPresent(corrId -> org.apache.logging.log4j.ThreadContext.put("correlation_id", corrId.toString()));
+        signal.getContextView().getOrEmpty("request.path")
+                .ifPresent(path -> org.apache.logging.log4j.ThreadContext.put("request_path", path.toString()));
+        signal.getContextView().getOrEmpty("request.method")
+                .ifPresent(method -> org.apache.logging.log4j.ThreadContext.put("request_method", method.toString()));
+        signal.getContextView().getOrEmpty(USER_CONTEXT_KEY)
+                .ifPresent(userCtx -> {
+                    if (userCtx instanceof UserContext user) {
+                        org.apache.logging.log4j.ThreadContext.put("user_id", user.userId());
+                    }
+                });
     }
     
     /**

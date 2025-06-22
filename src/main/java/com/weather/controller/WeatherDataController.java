@@ -415,7 +415,7 @@ public class WeatherDataController {
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     public Mono<WeatherDataResponse> getLatestWeatherDataByCity(
-            @Parameter(description = "City name", required = true)
+            @Parameter(description = "City name", required = true, example = "London")
             @PathVariable String city) {
         log.info("Fetching latest weather data for city: {}", city);
         return weatherDataService.getLatestWeatherDataByCity(city);
@@ -455,7 +455,7 @@ public class WeatherDataController {
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     public Mono<PageResponse<WeatherDataResponse>> getWeatherDataByCityAndDateRange(
-            @Parameter(description = "City name", required = true)
+            @Parameter(description = "City name", required = true, example = "London")
             @PathVariable String city,
             @Parameter(description = "Start date and time", required = true, example = "2024-01-01T00:00:00")
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,

@@ -3,16 +3,17 @@ package com.weather.config;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.ThreadContext;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
-import reactor.util.context.Context;
 
 /**
  * Web filter that automatically adds context propagation to all reactive requests.
  * Ensures correlation IDs, timing, and user context flow through reactive chains.
+ * Uses Spring Boot 3.4.x structured logging with ECS format for better observability.
  */
 @Component
 @RequiredArgsConstructor
@@ -33,48 +34,44 @@ public class ReactiveContextWebFilter implements WebFilter {
         boolean isApiEndpoint = metricsProperties.shouldIncludeInMetrics(requestPath);
         Long startTime = isApiEndpoint ? System.nanoTime() : null;
         
+        // Generate correlation ID for this request
+        String correlationId = contextPropagation.generateCorrelationId();
+        
         return chain.filter(exchange)
-                .contextWrite(context -> enrichContext(context, requestPath, method))
+                .contextWrite(context -> {
+                    // Create enriched context with all the cross-cutting concern data
+                    return context
+                            .put(ReactiveContextConfig.CORRELATION_ID_KEY, correlationId)
+                            .put(ReactiveContextConfig.REQUEST_START_TIME_KEY, System.currentTimeMillis())
+                            .put(ReactiveContextConfig.USER_CONTEXT_KEY, ReactiveContextConfig.UserContext.anonymous())
+                            .put("request.path", requestPath)
+                            .put("request.method", method);
+                })
+                .doFinally(signalType -> {
+                    // Clear ThreadContext when the reactive chain completes
+                    ThreadContext.clearAll();
+                })
+                .doOnSubscribe(subscription -> {
+                    // Populate ThreadContext for the initial subscription
+                    ThreadContext.put("correlation_id", correlationId);
+                    ThreadContext.put("user_id", "anonymous");
+                    ThreadContext.put("request_path", requestPath);
+                    ThreadContext.put("request_method", method);
+                    log.debug("Processing request {} {}", method, requestPath);
+                })
                 .doOnSuccess(unused -> {
                     if (isApiEndpoint && startTime != null) {
-                        // Record request timing with URI and method tags
                         metricsCollector.stopTimer(startTime, "api_request", "success", requestPath, method);
                     }
-                    logRequestCompletion(requestPath, method);
+                    log.debug("Request {} {} completed successfully", method, requestPath);
                 })
                 .doOnError(error -> {
                     if (isApiEndpoint && startTime != null) {
-                        // Record error timing with URI and method tags
                         metricsCollector.stopTimer(startTime, "api_request", "error", requestPath, method);
                     }
-                    logRequestError(requestPath, method, error);
+                    log.error("Request {} {} failed: {}", method, requestPath, error.getMessage(), error);
                 });
     }
     
-    /**
-     * Enrich the reactive context with cross-cutting concern data.
-     */
-    private Context enrichContext(Context context, String requestPath, String method) {
-        // Use ReactiveContextPropagation utility methods for proper context enrichment
-        // Using putAll(ContextView) with readOnly() to avoid deprecated putAll(Context)
-        Context enrichedContext = context
-                .putAll(contextPropagation.withCorrelationId().readOnly())
-                .putAll(contextPropagation.withRequestTiming().readOnly())
-                .putAll(contextPropagation.withUserContext("anonymous", "anonymous-user").readOnly());
-        
-        // Add request metadata for tracing
-        enrichedContext = enrichedContext.put("request.path", requestPath);
-        enrichedContext = enrichedContext.put("request.method", method);
-        
-        log.debug("Enriched reactive context for {} {} with correlation ID and timing", method, requestPath);
-        return enrichedContext;
-    }
     
-    private void logRequestCompletion(String requestPath, String method) {
-        log.debug("Request {} {} completed successfully with reactive context propagation", method, requestPath);
-    }
-    
-    private void logRequestError(String requestPath, String method, Throwable error) {
-        log.error("Request {} {} failed with reactive context: {}", method, requestPath, error.getMessage());
-    }
 }

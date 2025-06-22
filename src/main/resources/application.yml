@@ -280,14 +280,13 @@ security:
   csrf-enabled: false # CSRF typically handled differently in stateless REST APIs
 
 # ===================================================================
-# LOGGING CONFIGURATION (via Log4j2 - see log4j2.xml)
-# Spring Boot uses Logback by default, but we've excluded it.
-# For Log4j2, ensure log4j2.xml or log4j2-spring.xml is in the classpath.
+# LOGGING CONFIGURATION (Log4j2 with ECS-compatible structured logging)
+# Using Log4j2 native API with custom JSON patterns for Azure Application Insights, Loki, and Grafana
 # ===================================================================
 logging:
-  config: classpath:log4j2.xml # Explicitly point to log4j2.xml
-  # Levels can also be controlled here if not using a separate log4j2.xml,
-  # but log4j2.xml provides more advanced configuration options.
+  config: classpath:log4j2.xml
+  
+  # Log levels configuration
   level:
     root: INFO
     com.weather: DEBUG
@@ -300,6 +299,10 @@ logging:
     io.github.resilience4j: INFO
     reactor.netty: INFO
     io.netty: INFO
+  
+  # File logging configuration for Log4j2
+  file:
+    name: logs/weather-service.log
 
 # ===================================================================
 # Custom application info

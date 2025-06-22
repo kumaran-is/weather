@@ -1,104 +1,96 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration status="WARN">
     <Properties>
-        <Property name="LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n%throwable</Property>
-        <Property name="LOG_PATTERN_CONSOLE">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %highlight{%-5level} %style{%logger{36}}{cyan} - %msg%n%throwable</Property>
+        <!-- ECS-compatible structured logging patterns -->
+        <Property name="LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - [%X{correlation_id:-}] [%X{user_id:-}] %msg%n%throwable</Property>
+        <Property name="LOG_PATTERN_CONSOLE">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %highlight{%-5level} %style{%logger{36}}{cyan} - %style{[%X{correlation_id:-}]}{magenta} %style{[%X{user_id:-}]}{blue} %msg%n%throwable</Property>
+        
+        <!-- JSON pattern for structured logging (ECS-like) -->
+        <Property name="JSON_PATTERN">{"@timestamp":"%d{yyyy-MM-dd'T'HH:mm:ss.SSSZ}","log.level":"%level","service.name":"weather-service","process.thread.name":"%t","log.logger":"%logger","message":"%encode{%msg}{JSON}","correlation_id":"%X{correlation_id:-}","user_id":"%X{user_id:-}","request_path":"%X{request_path:-}","request_method":"%X{request_method:-}"%notEmpty{,"error.type":"%ex{1}","error.message":"%encode{%ex}{JSON}"}}</Property>
     </Properties>
 
     <Appenders>
-        <!-- Console Appender -->
+        <!-- Console Appender with colored pattern for development -->
         <Console name="ConsoleAppender" target="SYSTEM_OUT" follow="true">
             <PatternLayout pattern="${LOG_PATTERN_CONSOLE}"/>
         </Console>
 
-        <!-- File Appender - only active when logging.file.name is set -->
+        <!-- JSON Console Appender for structured logging -->
+        <Console name="JsonConsoleAppender" target="SYSTEM_OUT" follow="true">
+            <PatternLayout pattern="${JSON_PATTERN}%n"/>
+        </Console>
+
+        <!-- File Appender with JSON for structured logging -->
         <RollingFile name="FileAppender" fileName="${sys:logging.file.name:-logs/weather-service.log}"
                      filePattern="${sys:logging.file.name:-logs/weather-service}-%d{yyyy-MM-dd}-%i.log.gz">
-            <PatternLayout pattern="${LOG_PATTERN}"/>
+            <PatternLayout pattern="${JSON_PATTERN}%n"/>
             <Policies>
                 <TimeBasedTriggeringPolicy interval="1" modulate="true" />
-                <SizeBasedTriggeringPolicy size="10MB"/>
+                <SizeBasedTriggeringPolicy size="100MB"/>
             </Policies>
-            <DefaultRolloverStrategy max="10"/>
+            <DefaultRolloverStrategy max="30"/>
         </RollingFile>
+
+        <!-- Async wrapper for better performance -->
+        <Async name="AsyncFileAppender" bufferSize="2048">
+            <AppenderRef ref="FileAppender"/>
+        </Async>
     </Appenders>
 
     <Loggers>
         <!-- Application Loggers -->
         <Logger name="com.weather" level="DEBUG" additivity="false">
-            <AppenderRef ref="ConsoleAppender"/>
-            <SpringProfile name="local">
-                <AppenderRef ref="FileAppender"/>
-            </SpringProfile>
+            <AppenderRef ref="JsonConsoleAppender"/>
+            <AppenderRef ref="AsyncFileAppender"/>
         </Logger>
 
         <!-- Spring Framework Loggers -->
         <Logger name="org.springframework" level="INFO" additivity="false">
-            <AppenderRef ref="ConsoleAppender"/>
-            <SpringProfile name="local">
-                <AppenderRef ref="FileAppender"/>
-            </SpringProfile>
+            <AppenderRef ref="JsonConsoleAppender"/>
+            <AppenderRef ref="AsyncFileAppender"/>
         </Logger>
 
         <!-- R2DBC Loggers -->
         <Logger name="org.springframework.r2dbc" level="INFO" additivity="false">
-            <AppenderRef ref="ConsoleAppender"/>
-            <SpringProfile name="local"> <!-- DEBUG to file for local H2 troubleshooting -->
-                <AppenderRef ref="FileAppender" level="DEBUG" />
-            </SpringProfile>
+            <AppenderRef ref="JsonConsoleAppender"/>
+            <AppenderRef ref="AsyncFileAppender"/>
         </Logger>
 
-        <Logger name="io.r2dbc" level="INFO" additivity="false">
-            <AppenderRef ref="ConsoleAppender"/>
-            <SpringProfile name="local"> <!-- DEBUG to file for local H2 troubleshooting -->
-                <AppenderRef ref="FileAppender" level="DEBUG"/>
-            </SpringProfile>
+        <Logger name="io.r2dbc" level="DEBUG" additivity="false">
+            <AppenderRef ref="JsonConsoleAppender"/>
+            <AppenderRef ref="AsyncFileAppender"/>
         </Logger>
 
         <!-- Resilience4j Loggers -->
         <Logger name="io.github.resilience4j" level="INFO" additivity="false">
-            <AppenderRef ref="ConsoleAppender"/>
-            <SpringProfile name="local">
-                <AppenderRef ref="FileAppender"/>
-            </SpringProfile>
+            <AppenderRef ref="JsonConsoleAppender"/>
+            <AppenderRef ref="AsyncFileAppender"/>
         </Logger>
 
         <!-- Security Loggers -->
         <Logger name="org.springframework.security" level="INFO" additivity="false">
-            <AppenderRef ref="ConsoleAppender"/>
-            <SpringProfile name="local">
-                <AppenderRef ref="FileAppender"/>
-            </SpringProfile>
+            <AppenderRef ref="JsonConsoleAppender"/>
+            <AppenderRef ref="AsyncFileAppender"/>
         </Logger>
 
         <!-- Netty Project Loggers -->
         <Logger name="io.netty" level="INFO" additivity="false">
-            <AppenderRef ref="ConsoleAppender"/>
-            <SpringProfile name="local">
-                <AppenderRef ref="FileAppender"/>
-            </SpringProfile>
+            <AppenderRef ref="AsyncFileAppender"/>
         </Logger>
-        <Logger name="reactor.netty" level="INFO" additivity="false"> <!-- Default INFO for console -->
-            <AppenderRef ref="ConsoleAppender"/> <!-- DEBUG to file for local troubleshooting -->
-            <SpringProfile name="local">
-                <AppenderRef ref="FileAppender" level="DEBUG"/>
-            </SpringProfile>
+        
+        <Logger name="reactor.netty" level="INFO" additivity="false">
+            <AppenderRef ref="AsyncFileAppender"/>
         </Logger>
         
         <!-- Project Reactor Loggers -->
         <Logger name="reactor.core" level="INFO" additivity="false">
-            <AppenderRef ref="ConsoleAppender"/>
-            <SpringProfile name="local">
-                <AppenderRef ref="FileAppender"/>
-            </SpringProfile>
+            <AppenderRef ref="AsyncFileAppender"/>
         </Logger>
 
         <!-- Root Logger -->
         <Root level="INFO">
-            <AppenderRef ref="ConsoleAppender"/>
-            <SpringProfile name="local">
-                <AppenderRef ref="FileAppender"/>
-            </SpringProfile>
+            <AppenderRef ref="JsonConsoleAppender"/>
+            <AppenderRef ref="AsyncFileAppender"/>
         </Root>
     </Loggers>
 </Configuration>

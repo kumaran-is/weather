@@ -56,14 +56,12 @@ public class WeatherDataServiceImpl implements WeatherDataService {
         return validateRequest(request)
                 .then(Mono.fromCallable(() -> mapper.toEntity(request)))
                 .doOnNext(entity -> 
-                    // Context automatically flows here - no manual extraction needed
-                    log.debug("Creating weather data for city: {} (context flows automatically)", entity.getCity())
+                    log.debug("Creating weather data for city: {}", entity.getCity())
                 )
                 .flatMap(repository::save)
                 .map(mapper::toResponse)
                 .doOnSuccess(response -> 
-                    // Context with correlation ID is automatically available
-                    log.info("Created weather data with id: {} (correlation ID in context)", response.id())
+                    log.info("Created weather data with id: {}", response.id())
                 )
                 .onErrorMap(this::mapToServiceException);
     }
