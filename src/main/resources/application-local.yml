@@ -1,3 +1,15 @@
+# ==================================================================================
+# Local Development Server & Netty Configuration
+# ==================================================================================
+server:
+  netty:
+    # Local development Netty settings optimized for single-user debugging
+    connection-timeout: 2s                    # Short timeout for local development
+    idle-timeout: 60s                        # 1 minute idle timeout for local
+    max-initial-line-length: 4096            # 4KB for local requests
+    h2c-max-content-length: 2097152          # 2MB max content length for local
+    validate-headers: false                  # Disable validation for faster local dev
+
 spring:
 # ======================================================================== 
 # R2DBC Database Configuration uses H2 in-memory database  only for local

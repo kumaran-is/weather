@@ -1,3 +1,15 @@
+# ==================================================================================
+# QA Server & Netty Configuration
+# ==================================================================================
+server:
+  netty:
+    # QA environment Netty settings optimized for load testing and validation
+    connection-timeout: 4s                    # Extended timeout for QA testing
+    idle-timeout: 180s                       # 3 minutes idle timeout for QA
+    max-initial-line-length: 6144            # 6KB for QA test requests
+    h2c-max-content-length: 6291456          # 6MB max content length for QA
+    validate-headers: true                   # Always validate in QA environment
+
 spring:
 # ==================================================================================
 # QA R2DBC Database Configuration

@@ -36,6 +36,7 @@ A reactive REST service for managing weather data, built with Java 21, Spring Bo
 - [Reactive Programming Best Practices](#reactive-programming-best-practices)
 - [Architecture Documentation](#architecture-documentation)
 - [BlockHound Integration](#blockhound-integration)
+- [Netty Configuration](#netty-configuration)
 - [H2 Console Setup for Spring Boot WebFlux - Local Development Guide](#h2-console-setup-for-spring-boot-webflux---local-development-guide)
 - [Checklist](#checklist)
 
@@ -2042,6 +2043,61 @@ For comprehensive setup, configuration, and troubleshooting:
 - Grafana dashboard integration
 - Monitoring and alerting strategies
 - Best practices and troubleshooting
+
+---
+
+## Netty Configuration
+
+### 🚀 **High-Performance Server Configuration**
+
+The Weather Service uses optimized **Netty** configurations for maximum performance across all environments, ensuring optimal resource utilization and security.
+
+#### **What is Netty?**
+Netty is the high-performance, asynchronous event-driven network framework that powers Spring WebFlux, providing non-blocking I/O and excellent scalability.
+
+#### **Environment-Optimized Settings**
+
+| Environment | Connection Timeout | Idle Timeout | Max Content | Use Case |
+|-------------|-------------------|--------------|-------------|----------|
+| **Local** | 2s | 60s | 2MB | Single developer debugging |
+| **Dev** | 3s | 120s | 4MB | Team development & testing |
+| **QA** | 4s | 180s | 6MB | Load testing & validation |
+| **Production** | 5s | 300s | 8MB | High-throughput live traffic |
+
+#### **Key Performance Benefits**
+✅ **High Concurrency** - Handle thousands of connections with minimal threads  
+✅ **Low Latency** - Non-blocking I/O reduces response times  
+✅ **Memory Efficiency** - Optimized buffer management and connection reuse  
+✅ **Environment Scaling** - Progressive configuration from dev to production  
+
+#### **Security Features**
+- **Header Validation**: Enabled in dev/qa/prod (disabled in local for speed)
+- **Content Length Limits**: Environment-appropriate DoS protection
+- **Connection Timeouts**: Prevent resource exhaustion attacks
+- **Progressive Hardening**: More restrictive settings in higher environments
+
+#### **Example Configuration**
+```yaml
+# Production-optimized settings
+server:
+  netty:
+    connection-timeout: 5s                    # Extended for production networks
+    idle-timeout: 300s                       # 5 minutes - optimize connection reuse
+    max-initial-line-length: 8192            # 8KB for larger production requests
+    h2c-max-content-length: 8388608          # 8MB max content length
+    validate-headers: true                   # Always validate for security
+```
+
+#### **📚 Complete Documentation**
+For detailed configuration, performance tuning, and troubleshooting:
+**[🔗 Netty Configuration Guide](docs/NETTY-CONFIGURATION-GUIDE.md)**
+
+**Covers:**
+- Environment-specific optimization strategies
+- Performance tuning and monitoring
+- Security configuration best practices
+- Advanced settings and troubleshooting
+- Connection pool optimization
 
 ---
 

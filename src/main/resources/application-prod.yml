@@ -1,3 +1,15 @@
+# ==================================================================================
+# Production Server & Netty Configuration
+# ==================================================================================
+server:
+  netty:
+    # Production-optimized Netty settings for high throughput
+    connection-timeout: 5s                    # Longer timeout for production networks
+    idle-timeout: 300s                       # 5 minutes idle timeout
+    max-initial-line-length: 8192            # 8KB for larger production requests
+    h2c-max-content-length: 8388608          # 8MB max content length
+    validate-headers: true                   # Always validate in production
+
 spring:
 # ==================================================================================
 # Production R2DBC Database Configuration

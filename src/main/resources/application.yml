@@ -49,8 +49,14 @@ server:
   port: ${SERVER_PORT:8080} # Standard application port
   shutdown: graceful # Enable graceful shutdown
   netty:
-    connection-timeout: 2s # Netty connection timeout
-    idle-timeout: 60s # Netty idle timeout
+    # ===================================================================
+    # Default Netty Configuration (Development Optimized)
+    # ===================================================================
+    connection-timeout: 2s                    # TCP connection timeout
+    idle-timeout: 60s                        # Channel idle timeout
+    max-initial-line-length: 4096            # Max HTTP initial line length (4KB)
+    h2c-max-content-length: 0                # H2C max content length (0 = unlimited)
+    validate-headers: true                   # Validate HTTP headers
   error:
     whitelabel:
       enabled: false # Disable Spring Boot's default error page
