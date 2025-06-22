@@ -28,6 +28,12 @@ logging:
     com.weather: DEBUG
     org.springframework.r2dbc: DEBUG
     io.r2dbc.h2: DEBUG
+    org.springframework.boot.web: INFO
+    org.springframework.boot.actuate: INFO
+    org.springframework.boot.autoconfigure: WARN
+    org.springframework.boot.context.config: WARN
+    org.springframework.context: WARN
+   
 # ======================================================================== 
 # Local profile specific resilience configuration
 # ======================================================================== 

@@ -101,13 +101,13 @@ public class BlockHoundConfig {
         allowBlockingCall(builder, builderClass, "org.apache.logging.log4j.core.Logger", "logMessage");
         
         // Allow R2DBC operations that might appear blocking but are reactive
-        allowBlockingCall(builder, builderClass, "io.r2dbc.h2.H2Connection", "createStatement");
-        allowBlockingCall(builder, builderClass, "io.r2dbc.mssql.MssqlConnection", "createStatement");
+       // allowBlockingCall(builder, builderClass, "io.r2dbc.h2.H2Connection", "createStatement");
+       // allowBlockingCall(builder, builderClass, "io.r2dbc.mssql.MssqlConnection", "createStatement");
         
         // Allow Weather Service specific operations
-        allowBlockingCall(builder, builderClass, "com.weather.service.WeatherDataServiceImpl", "validateRequest");
-        allowBlockingCall(builder, builderClass, "com.weather.mapper.WeatherDataMapper", "toEntity");
-        allowBlockingCall(builder, builderClass, "com.weather.mapper.WeatherDataMapper", "toResponse");
+       // allowBlockingCall(builder, builderClass, "com.weather.service.WeatherDataServiceImpl", "validateRequest");
+       // allowBlockingCall(builder, builderClass, "com.weather.mapper.WeatherDataMapper", "toEntity");
+       // allowBlockingCall(builder, builderClass, "com.weather.mapper.WeatherDataMapper", "toResponse");
     }
     
     /**

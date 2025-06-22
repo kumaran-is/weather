@@ -31,6 +31,12 @@ logging:
     io.r2dbc: WARN
     io.github.resilience4j: INFO
     reactor.netty: WARN
+    org.springframework.boot.web: INFO
+    org.springframework.boot.actuate: INFO
+    org.springframework.boot.autoconfigure: WARN
+    org.springframework.boot.context.config: WARN
+    org.springframework.context: WARN
+   
 
 # ==================================================================================
 # Production Security Configuration

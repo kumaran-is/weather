@@ -29,9 +29,14 @@ logging:
     com.weather: DEBUG
     org.springframework: INFO
     org.springframework.data.r2dbc: INFO
+    org.springframework.boot.web: INFO
+    org.springframework.boot.actuate: INFO
     io.r2dbc: INFO
     io.github.resilience4j: DEBUG
     reactor.netty: INFO
+    org.springframework.boot.autoconfigure: WARN
+    org.springframework.boot.context.config: WARN
+    org.springframework.context: WARN
 
 # ==================================================================================
 # QA Resilience Configuration

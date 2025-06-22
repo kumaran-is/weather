@@ -28,6 +28,12 @@ logging:
     org.springframework.r2dbc: INFO
     io.r2dbc.pool: DEBUG                 # Pool-specific logging
     root: INFO
+    org.springframework.boot.web: INFO
+    org.springframework.boot.actuate: INFO
+    org.springframework.boot.autoconfigure: WARN
+    org.springframework.boot.context.config: WARN
+    org.springframework.context: WARN
+   
 # Dev profile specific resilience configuration
 resilience4j:
   circuitbreaker:

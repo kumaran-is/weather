@@ -300,6 +300,10 @@ logging:
     org.springframework.web: INFO
     org.springframework.security: INFO
     org.springframework.data.r2dbc: INFO
+    org.springframework.boot.actuate: INFO
+    org.springframework.boot.autoconfigure: WARN
+    org.springframework.boot.context.config: WARN
+    org.springframework.context: WARN
     io.r2dbc.mssql: INFO
     io.r2dbc.h2: INFO
     io.github.resilience4j: INFO

@@ -109,9 +109,61 @@ BlockHound is already configured in the project's `pom.xml`:
 <dependency>
     <groupId>io.projectreactor.tools</groupId>
     <artifactId>blockhound</artifactId>
-    <version>1.0.8.RELEASE</version>
+    <version>1.0.13.RELEASE</version>
     <scope>runtime</scope>
 </dependency>
+```
+
+### **☕ Java 21 Compatibility Configuration**
+
+**Important**: BlockHound requires specific JVM arguments when running on Java 21+ due to module system restrictions. The following configuration has been added to `pom.xml`:
+
+#### **Spring Boot Maven Plugin Configuration**
+```xml
+<plugin>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-maven-plugin</artifactId>
+    <configuration>
+        <!-- JVM arguments for BlockHound compatibility with Java 21 -->
+        <jvmArguments>-XX:+AllowRedefinitionToAddDeleteMethods</jvmArguments>
+    </configuration>
+</plugin>
+```
+
+#### **Surefire Test Plugin Configuration**
+```xml
+<plugin>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-surefire-plugin</artifactId>
+    <configuration>
+        <argLine>-XX:+AllowRedefinitionToAddDeleteMethods</argLine>
+    </configuration>
+</plugin>
+```
+
+#### **JVM Arguments Explanation**
+| JVM Flag | Purpose | Required For |
+|----------|---------|--------------|
+| `-XX:+AllowRedefinitionToAddDeleteMethods` | Allows BlockHound to instrument bytecode at runtime | Java 13+ |
+
+**Without this configuration**, you'll encounter the error:
+```
+IllegalStateException: The instrumentation have failed. 
+It looks like you're running on JDK 13+. 
+You need to add '-XX:+AllowRedefinitionToAddDeleteMethods' JVM flag.
+```
+
+#### **Running the Application**
+With the configuration in place, you can run the application normally:
+```bash
+# Development
+./mvnw spring-boot:run -Dspring-boot.run.profiles=local
+
+# Testing
+./mvnw test
+
+# Production (BlockHound disabled)
+./mvnw spring-boot:run -Dspring-boot.run.profiles=prod
 ```
 
 ### **⚙️ Configuration Class**

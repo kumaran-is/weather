@@ -154,7 +154,7 @@
         <dependency>
             <groupId>io.projectreactor.tools</groupId>
             <artifactId>blockhound</artifactId>
-            <version>1.0.8.RELEASE</version>
+            <version>1.0.13.RELEASE</version>
             <scope>runtime</scope>
         </dependency>
     </dependencies>
@@ -171,6 +171,8 @@
                             <artifactId>lombok</artifactId>
                         </exclude>
                     </excludes>
+                    <!-- JVM arguments for BlockHound compatibility with Java 21 -->
+                    <jvmArguments>-XX:+AllowRedefinitionToAddDeleteMethods</jvmArguments>
                 </configuration>
                 <executions>
                     <execution>
@@ -221,6 +223,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <skipTests>true</skipTests>
+                    <argLine>-XX:+AllowRedefinitionToAddDeleteMethods</argLine>
                 </configuration>
             </plugin>
         </plugins>
